@@ -1,0 +1,769 @@
+<meta charset="utf-8">
+<title>PER Scorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: bench-instrument workspace. Video + ethogram timeline on the left, bee roster / keys / log on the right. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#18212a; --muted:#5d6b78; --line:#d9e0e5; --soft:#e9eef1;
+  --accent:#b06e00; --accent-ink:#ffffff; --accent-soft:#fbefd9;
+  --good:#1f7a4d; --good-soft:#dcf1e5; --bad:#b3362c; --bad-soft:#f8e1de; --warn:#946200;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171c; --panel:#1a2128; --ink:#e4e9ed; --muted:#93a1ad; --line:#2c3640; --soft:#222b33;
+  --accent:#f0a92e; --accent-ink:#1a1206; --accent-soft:#3a2c12;
+  --good:#5fd39a; --good-soft:#163527; --bad:#ff8a7e; --bad-soft:#3d1d1a; --warn:#f0c060; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171c; --panel:#1a2128; --ink:#e4e9ed; --muted:#93a1ad; --line:#2c3640; --soft:#222b33;
+  --accent:#f0a92e; --accent-ink:#1a1206; --accent-soft:#3a2c12;
+  --good:#5fd39a; --good-soft:#163527; --bad:#ff8a7e; --bad-soft:#3d1d1a; --warn:#f0c060; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 10px;line-height:1.2}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+button.ghost:hover{color:var(--ink);border-color:var(--line)}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0}
+input[type=number]{font-family:var(--mono)}
+label{color:var(--muted);font-size:12px}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{flex:none}
+.brand p{margin:0;color:var(--muted);font-size:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.meta .f{display:flex;flex-direction:column;gap:2px}
+.meta input{width:150px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.spread{justify-content:space-between}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* video stage */
+.stage{position:relative;background:#0b0e11;border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
+.stage video{width:100%;height:100%;object-fit:contain;display:block}
+.drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#c9d2da;text-align:center;padding:20px}
+.drop strong{font-size:16px;color:#fff}
+.drop .live{font-family:var(--mono);font-size:56px;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.drop.over{background:rgba(240,169,46,.18);outline:2px dashed #f0a92e;outline-offset:-10px}
+.stage .badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.6);color:#fff;font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:4px}
+.stage .active{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 20px)}
+.stage .active span{font-size:12px;font-weight:600;color:#fff;padding:3px 8px;border-radius:4px}
+.transport{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.clock{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;min-width:8.5ch}
+.sep{width:1px;height:22px;background:var(--line)}
+.tl-wrap{overflow-x:auto}
+canvas#tl{display:block;width:100%;min-width:560px;cursor:crosshair;border-radius:6px}
+
+/* key pad */
+.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.key{display:flex;align-items:center;gap:8px;text-align:left;padding:7px 8px;position:relative;min-width:0}
+.key kbd{font-family:var(--mono);font-weight:600;font-size:12px;min-width:22px;height:22px;display:grid;place-items:center;border-radius:4px;border:1px solid var(--line);background:var(--soft)}
+.key .nm{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.key .sw{width:4px;align-self:stretch;border-radius:2px;flex:none}
+.key .el{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.key.on{background:var(--accent-soft);border-color:var(--accent)}
+.key.on .el{color:var(--ink);font-weight:600}
+.key .tag{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+/* bees */
+.bees{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow:auto}
+.bee{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:7px 10px;align-items:center}
+.bee.cur{border-color:var(--accent);background:var(--accent-soft)}
+.bee .id{font-weight:600}
+.bee .sub{grid-column:1;color:var(--muted);font-size:12px}
+.pill{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.pill.yes{background:var(--good-soft);color:var(--good)}
+.pill.no{background:var(--bad-soft);color:var(--bad)}
+.pill.na{background:var(--soft);color:var(--muted)}
+.pill.ex{background:var(--accent-soft);color:var(--accent)}
+.addbee{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px}
+.addbee input{width:100%}
+
+/* tables */
+.tbl-wrap{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:var(--soft);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;z-index:1}
+td input[type=number]{width:86px;padding:2px 5px}
+td.num,th.num{text-align:right}
+tr.open td{background:var(--accent-soft)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.empty{color:var(--muted);font-size:13px;padding:14px;text-align:center}
+details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸";color:var(--muted);font-size:11px;transition:transform .15s}
+details[open]>summary::before{transform:rotate(90deg)}
+.etho{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.etho-row{display:grid;grid-template-columns:28px 1fr 46px 82px 92px 28px;gap:6px;align-items:center}
+.etho-row input[type=color]{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:4px;background:none}
+.etho-row input.k{text-align:center;font-family:var(--mono);text-transform:uppercase}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.settings .f{display:flex;flex-direction:column;gap:3px}
+.checks{display:flex;flex-wrap:wrap;gap:4px 12px}
+.checks label{color:var(--ink);font-size:13px;display:flex;align-items:center;gap:5px}
+.help{color:var(--muted);font-size:12px;margin:0}
+.hotkeys{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;color:var(--muted)}
+.hotkeys kbd{font-family:var(--mono);color:var(--ink);font-size:11px;background:var(--soft);border:1px solid var(--line);border-radius:3px;padding:0 5px;justify-self:start}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.toast.show{opacity:1}
+.confirm{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--bad)}
+@media (max-width:560px){.addbee{grid-template-columns:1fr 1fr}.etho-row{grid-template-columns:28px 1fr 40px 28px}.etho-row select{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="7" fill="var(--accent)"/><path d="M11 9h12v6a6 6 0 0 1-12 0z" fill="var(--accent-ink)"/><path d="M17 21v8" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div><h1>PER Scorer</h1><p>Proboscis extension response scoring for harnessed bees</p></div>
+    </div>
+    <div class="meta">
+      <div class="f"><label for="m-exp">Experimenter</label><input id="m-exp" placeholder="Initials"></div>
+      <div class="f"><label for="m-date">Date</label><input id="m-date" type="date"></div>
+      <div class="f"><label for="m-exp-id">Experiment</label><input id="m-exp-id" placeholder="e.g. Sucrose responsiveness, day 1"></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-label="Video and timeline">
+        <div class="stage" id="stage">
+          <video id="vid" playsinline hidden></video>
+          <div class="drop" id="drop">
+            <div class="live" id="liveClock">00:00.00</div>
+            <strong>Live mode: scoring against a stopwatch</strong>
+            <span>Drop a video of the harnessed bee here to score from the recording, or press <span class="mono">Space</span> to start the stopwatch and score live.</span>
+            <div class="row" style="justify-content:center"><button class="primary" id="pickVid">Open video…</button></div>
+          </div>
+          <div class="badge" id="beeBadge"></div>
+          <div class="active" id="activeTags"></div>
+        </div>
+        <input type="file" id="vidFile" accept="video/*" hidden>
+        <div class="transport">
+          <button id="bPlay" title="Play / pause (Space)" style="min-width:68px">Start</button>
+          <button id="bBack5" title="Back 5 s (Shift+←)">−5s</button>
+          <button id="bBack1" title="Back 1 s (←)">−1s</button>
+          <button id="bFrmB" title="Previous frame (,)">◂ fr</button>
+          <button id="bFrmF" title="Next frame (.)">fr ▸</button>
+          <button id="bFwd1" title="Forward 1 s (→)">+1s</button>
+          <button id="bFwd5" title="Forward 5 s (Shift+→)">+5s</button>
+          <span class="sep"></span>
+          <label for="rate">Speed</label>
+          <select id="rate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>1.5</option><option>2</option></select>
+          <label for="fps">fps</label><input id="fps" type="number" value="30" min="1" max="1000" style="width:64px">
+          <span class="sep"></span>
+          <span class="clock" id="clock">00:00.00</span>
+          <span style="flex:1"></span>
+          <button class="ghost" id="bResetClock" title="Reset the stopwatch to zero">Reset clock</button>
+          <button class="ghost" id="bCloseVid" hidden>Close video</button>
+        </div>
+        <div class="row spread">
+          <h2>Ethogram timeline · <span id="tlBee"></span></h2>
+          <div class="row">
+            <label for="zoom">View</label>
+            <select id="zoom"><option value="fit">Whole recording</option><option value="60">60 s around playhead</option><option value="20">20 s around playhead</option><option value="8">8 s around playhead</option></select>
+          </div>
+        </div>
+        <div class="tl-wrap"><canvas id="tl" tabindex="0" aria-label="Behavior timeline. Click to seek."></canvas></div>
+        <p class="help">Click the timeline to seek.</p>
+      </section>
+
+      <section class="panel" aria-label="Behavior keys">
+        <div class="row spread"><h2>Behavior keys</h2><span class="help">Press a key once to start, again to stop.</span></div>
+        <div class="keys" id="keys"></div>
+        <details id="ethoDetails">
+          <summary><h2 style="display:inline">Edit ethogram</h2></summary>
+          <div class="etho" id="etho"></div>
+          <div class="row" style="margin-top:8px"><button id="addBeh">Add behavior</button><span class="help" id="ethoMsg"></span></div>
+          <p class="help">Type: <b>start/stop</b> logs a bout with duration; <b>point</b> logs a single instant. Role: <b>behavior</b> rows are what the bee did; mark a row <b>stimulus</b> only if you add something you presented, and it is left out of the behavior summary. Keys Z, N and B are reserved.</p>
+        </details>
+      </section>
+
+      <section class="panel" aria-label="Event log">
+        <div class="row spread"><h2>Event log · <span id="logBee"></span></h2>
+          <div class="row"><button id="bUndo" title="Undo (Z)">Undo</button><button class="ghost" id="bClearBee">Clear this bee</button><span id="clearConfirm"></span></div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Behavior</th><th class="num">Start (s)</th><th class="num">Stop (s)</th><th class="num">Dur (s)</th><th></th></tr></thead><tbody id="log"></tbody></table></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-label="Bees">
+        <div class="row spread"><h2>Bees</h2><span class="help"><span class="mono">N</span> / <span class="mono">B</span> next / previous</span></div>
+        <div class="bees" id="bees"></div>
+        <form class="addbee" id="addBee">
+          <input id="nb-id" placeholder="Bee ID" required aria-label="Bee ID">
+          <input id="nb-holder" placeholder="Holder #" aria-label="Holder number">
+          <input id="nb-group" placeholder="Group" aria-label="Treatment group">
+          <button class="primary" type="submit">Add</button>
+        </form>
+        <div class="row" id="beeEdit"></div>
+      </section>
+
+      <section class="panel" aria-label="Trial summary">
+        <h2>PER summary · <span id="sumBee"></span></h2>
+        <div id="trialSum"></div>
+      </section>
+
+      <section class="panel" aria-label="Scoring rules">
+        <h2>Scoring rules</h2>
+        <div class="settings">
+          <div class="f"><label for="s-cs">Trial onset</label><select id="s-cs"></select></div>
+          <div class="f"><label for="s-rw">Response window after onset (s)</label><input id="s-rw" type="number" min="0" step="0.1"></div>
+          <div class="f"><label for="s-aw">Behavior summary window (s)</label><input id="s-aw" type="number" min="0" step="0.5"></div>
+        </div>
+        <div class="f"><label>Counts as a PER</label><div class="checks" id="s-resp"></div></div>
+        <p class="help" id="rulesHelp"></p>
+      </section>
+
+      <section class="panel" aria-label="Export">
+        <h2>Data</h2>
+        <div class="row">
+          <button class="primary" id="xEvents">Events CSV</button>
+          <button class="primary" id="xSummary">Trial summary CSV</button>
+        </div>
+        <div class="row">
+          <button id="xJson">Save project (.json)</button>
+          <button id="iJson">Open project…</button>
+          <button class="ghost" id="cpSummary">Copy summary</button>
+          <input type="file" id="jsonFile" accept=".json,application/json" hidden>
+        </div>
+        <p class="help">Work is kept in this browser automatically, but browser storage can be cleared. Save the project file at the end of each session.</p>
+      </section>
+
+      <section class="panel" aria-label="Shortcuts">
+        <h2>Shortcuts</h2>
+        <div class="hotkeys">
+          <kbd>Space</kbd><span>Play / pause video, or start / stop the stopwatch</span>
+          <kbd>← →</kbd><span>Seek 1 s (Shift: 5 s)</span>
+          <kbd>, .</kbd><span>Step one frame back / forward</span>
+          <kbd>[ ]</kbd><span>Slower / faster playback</span>
+          <kbd>Z</kbd><span>Undo last change</span>
+          <kbd>N B</kbd><span>Next / previous bee</span>
+          <kbd>letters</kbd><span>Toggle behaviors (see keys)</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-label="All bees">
+    <div class="row spread"><h2>All bees · trial results</h2><span class="help" id="allStats"></span></div>
+    <div class="tbl-wrap" style="max-height:420px"><table id="allTbl"></table></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const STORE = 'per-scorer-v2';
+const RESERVED = new Set(['z','n','b']);
+const PALETTE = ['#2f6fd6','#e0732a','#1f9d6a','#c2410c','#8b5cf6','#d23f8f','#0e9aa7','#a16207','#64748b','#dc2626','#4d7c0f','#7c3aed'];
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+const DEFAULT_BEHAVIORS = [
+  {id:'pe',  name:'Full proboscis ext.',    key:'p', type:'state', role:'behavior', color:'#e0732a'},
+  {id:'pp',  name:'Partial extension',      key:'e', type:'state', role:'behavior', color:'#d9a21b'},
+  {id:'an',  name:'Antennal movement',      key:'a', type:'state', role:'behavior', color:'#2f6fd6'},
+  {id:'md',  name:'Mandible opening',       key:'m', type:'state', role:'behavior', color:'#1f9d6a'},
+  {id:'gr',  name:'Grooming',               key:'g', type:'state', role:'behavior', color:'#8b5cf6'},
+  {id:'st',  name:'Struggling',             key:'s', type:'state', role:'behavior', color:'#dc2626'},
+  {id:'sx',  name:'Sting extension',        key:'x', type:'state', role:'behavior', color:'#d23f8f'},
+  {id:'df',  name:'Defecation',             key:'d', type:'point', role:'behavior', color:'#64748b'},
+];
+
+function exampleState(){
+  const ev = (bid,t0,t1)=>({id:uid(),bid,t0,t1});
+  return {
+    session:{experimenter:'',date:new Date().toISOString().slice(0,10),experiment:''},
+    behaviors: DEFAULT_BEHAVIORS.map(b=>({...b})),
+    settings:{cs:'', resp:['pe'], rw:3, aw:10, fps:30},
+    bees:[
+      {id:uid(), label:'Example bee', holder:'H1', group:'Example', clock:24, example:true, events:[
+        ev('an',1.2,4.8), ev('an',5.4,8.6), ev('md',6.1,6.9), ev('pe',6.3,11.2),
+        ev('gr',14,17.5), ev('pp',20.6,21.4), ev('an',19.3,22.9), ev('df',22.2,22.2)
+      ]},
+      {id:uid(), label:'Example bee 2', holder:'H2', group:'Example', clock:12, example:true, events:[
+        ev('st',2.1,4.4), ev('an',3.6,6.5), ev('md',5.8,6.3)
+      ]},
+    ],
+    current:null,
+  };
+}
+
+let S = load() || exampleState();
+if(!S.current || !S.bees.find(b=>b.id===S.current)) S.current = S.bees[0]?.id || null;
+const undo = [];
+
+function load(){ try{ const s = JSON.parse(localStorage.getItem(STORE)); return s && s.bees ? s : null; }catch(e){ return null; } }
+let saveT;
+function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(STORE, JSON.stringify(S)); }catch(e){} }, 300); }
+
+const bee = () => S.bees.find(b=>b.id===S.current);
+const beh = id => S.behaviors.find(b=>b.id===id);
+
+/* ---------- clock: video time when a video is open, else a per-bee stopwatch ---------- */
+const vid = $('vid');
+let hasVideo = false, videoName = '';
+const live = {running:false, startedAt:0, base:0};
+function syncLiveFromBee(){ live.running=false; live.base = bee()?.clock || 0; }
+function now(){
+  if(hasVideo) return vid.currentTime;
+  return live.running ? live.base + (performance.now()-live.startedAt)/1000 : live.base;
+}
+function setTime(t){
+  t = Math.max(0, t);
+  if(hasVideo){ vid.currentTime = Math.min(t, vid.duration || t); }
+  else { live.base = t; if(live.running) live.startedAt = performance.now(); const b=bee(); if(b){ b.clock=t; save(); } }
+}
+function togglePlay(){
+  if(hasVideo){ vid.paused ? vid.play() : vid.pause(); }
+  else if(live.running){ live.base = now(); live.running=false; const b=bee(); if(b){ b.clock=live.base; save(); } }
+  else { live.startedAt = performance.now(); live.running = true; }
+  renderTransport();
+}
+function isPlaying(){ return hasVideo ? !vid.paused : live.running; }
+const fmt = t => { if(t==null||isNaN(t)) return '—'; const m=Math.floor(t/60), s=t-m*60; return String(m).padStart(2,'0')+':'+s.toFixed(2).padStart(5,'0'); };
+const f2 = t => t==null||isNaN(t) ? '' : (+t).toFixed(2);
+
+/* ---------- scoring ---------- */
+function snapshot(){ const b=bee(); if(b){ undo.push({bee:b.id, events:JSON.stringify(b.events)}); if(undo.length>200) undo.shift(); } }
+function toggleBehavior(bid){
+  const b = bee(); if(!b){ toast('Add a bee first'); return; }
+  const d = beh(bid); if(!d) return;
+  const t = +now().toFixed(3);
+  snapshot();
+  if(b.example){ b.example=false; }
+  if(d.type==='point'){ b.events.push({id:uid(),bid,t0:t,t1:t}); toast(d.name+' at '+fmt(t)); }
+  else {
+    const open = b.events.find(e=>e.bid===bid && e.t1==null);
+    if(open){ open.t1 = Math.max(t, open.t0); toast(d.name+' stopped · '+(open.t1-open.t0).toFixed(2)+' s'); }
+    else { b.events.push({id:uid(),bid,t0:t,t1:null}); toast(d.name+' started'); }
+  }
+  b.videoName = hasVideo ? videoName : (b.videoName||'');
+  changed();
+}
+function doUndo(){
+  const u = undo.pop(); if(!u){ toast('Nothing to undo'); return; }
+  const b = S.bees.find(x=>x.id===u.bee); if(b){ b.events = JSON.parse(u.events); S.current=b.id; }
+  toast('Undone'); changed();
+}
+
+function trials(b){
+  const cs = !S.settings.cs ? [] : b.events.filter(e=>e.bid===S.settings.cs).sort((a,c)=>a.t0-c.t0);
+  const onsets = cs.length ? cs.map(e=>e.t0) : [null];
+  const resp = new Set(S.settings.resp);
+  const rw = +S.settings.rw || 0, aw = +S.settings.aw || 0;
+  const tEnd = Math.max(now(), ...b.events.map(e=>e.t1 ?? e.t0), 0);
+  return onsets.map((on,i)=>{
+    const o = on ?? 0;
+    const winEnd = on==null ? Infinity : o + rw;
+    const rs = b.events.filter(e=>resp.has(e.bid)).sort((a,c)=>a.t0-c.t0);
+    const first = rs.find(e=>e.t0>=o && e.t0<=winEnd);
+    const pre = on!=null && rs.some(e=>e.t0<o && (e.t1==null || e.t1>o));
+    const aEnd = on==null ? Infinity : o + aw;
+    const per = {};
+    S.behaviors.forEach(d=>{
+      let n=0, dur=0;
+      b.events.filter(e=>e.bid===d.id).forEach(e=>{
+        const t1 = e.t1 ?? tEnd;
+        if(e.t0>=o && e.t0<=aEnd) n++;
+        const ov = Math.min(t1,aEnd) - Math.max(e.t0,o);
+        if(ov>0) dur+=ov;
+      });
+      per[d.id] = {n, dur};
+    });
+    return {i:i+1, onset:on, per:first?1:0, lat:first? first.t0-o : null, pre, beh:per};
+  });
+}
+
+/* ---------- rendering ---------- */
+function changed(){ save(); renderAll(); }
+function renderAll(){ renderBees(); renderKeys(); renderLog(); renderSummary(); renderAll2(); renderSettings(); renderTransport(); drawTL(); }
+
+function renderTransport(){
+  $('bPlay').textContent = isPlaying() ? 'Pause' : (hasVideo ? 'Play' : 'Start');
+  const b = bee(); const name = b ? b.label + (b.holder?' · '+b.holder:'') : 'No bee';
+  $('beeBadge').textContent = name;
+  ['tlBee','logBee','sumBee'].forEach(id=>$(id).textContent = b ? b.label : '—');
+  $('bCloseVid').hidden = !hasVideo; $('bResetClock').hidden = hasVideo;
+  $('drop').hidden = hasVideo; vid.hidden = !hasVideo;
+}
+
+function renderBees(){
+  const el = $('bees'); el.innerHTML='';
+  if(!S.bees.length){ el.innerHTML='<div class="empty">No bees yet. Add the first bee below.</div>'; }
+  S.bees.forEach(b=>{
+    const tr = trials(b); const scored = isScored(b, tr);
+    const btn = document.createElement('button'); btn.type='button';
+    btn.className='bee'+(b.id===S.current?' cur':'');
+    const pills = scored ? tr.map(t=>`<span class="pill ${t.per?'yes':'no'}" title="Trial ${t.i}">${t.per?'+':'−'}</span>`).join(' ') : `<span class="pill na">${S.settings.cs?'no onset':'not scored'}</span>`;
+    btn.innerHTML = `<span class="id"></span><span class="row" style="gap:3px;grid-row:span 2">${b.example?'<span class="pill ex">example</span>':''}${pills}</span><span class="sub"></span>`;
+    btn.querySelector('.id').textContent = b.label;
+    btn.querySelector('.sub').textContent = [b.holder&&('holder '+b.holder), b.group, b.events.length+' events'].filter(Boolean).join(' · ');
+    btn.onclick = ()=>selectBee(b.id);
+    el.appendChild(btn);
+  });
+  const b = bee(), be = $('beeEdit'); be.innerHTML='';
+  if(b){
+    be.innerHTML = `<label for="eb-l">ID</label><input id="eb-l" style="width:90px"><label for="eb-h">Holder</label><input id="eb-h" style="width:60px"><label for="eb-g">Group</label><input id="eb-g" style="width:90px"><span id="delBeeWrap"><button class="ghost" id="delBee">Delete bee</button></span>`;
+    $('eb-l').value=b.label; $('eb-h').value=b.holder||''; $('eb-g').value=b.group||'';
+    $('eb-l').onchange=e=>{b.label=e.target.value||b.label; changed();};
+    $('eb-h').onchange=e=>{b.holder=e.target.value; changed();};
+    $('eb-g').onchange=e=>{b.group=e.target.value; changed();};
+    $('delBee').onclick=()=>confirmInline($('delBeeWrap'),'Delete '+b.label+'?',()=>{
+      S.bees = S.bees.filter(x=>x!==b); S.current = S.bees[0]?.id||null; syncLiveFromBee(); changed();
+    });
+  }
+}
+function confirmInline(host, msg, fn){
+  const prev = host.innerHTML;
+  host.innerHTML = `<span class="confirm">${msg} <button class="primary" style="background:var(--bad);border-color:var(--bad)">Yes</button><button class="ghost">No</button></span>`;
+  const [y,n] = host.querySelectorAll('button');
+  y.onclick = fn; n.onclick = ()=>{ host.innerHTML=prev; renderAll(); };
+}
+function selectBee(id){
+  if(!hasVideo && live.running){ const b=bee(); if(b) b.clock=now(); }
+  S.current=id; syncLiveFromBee(); changed();
+}
+
+function renderKeys(){
+  const el = $('keys'); el.innerHTML='';
+  const b = bee(); const t = now();
+  S.behaviors.forEach(d=>{
+    const open = b && b.events.find(e=>e.bid===d.id && e.t1==null);
+    const btn = document.createElement('button'); btn.type='button';
+    btn.className = 'key'+(open?' on':''); btn.dataset.bid=d.id;
+    btn.innerHTML = `<span class="sw" style="background:${d.color}"></span><kbd>${(d.key||'·').toUpperCase()}</kbd><span class="nm"></span><span class="el">${open? (t-open.t0).toFixed(1)+'s' : (d.role==='stimulus'?'<span class="tag">stim</span>':(d.type==='point'?'<span class="tag">point</span>':''))}</span>`;
+    btn.querySelector('.nm').textContent = d.name; btn.title = d.name;
+    btn.onclick = ()=>toggleBehavior(d.id);
+    el.appendChild(btn);
+  });
+  const tags = $('activeTags'); tags.innerHTML='';
+  if(b) b.events.filter(e=>e.t1==null).forEach(e=>{ const d=beh(e.bid); if(!d) return; const s=document.createElement('span'); s.style.background=d.color; s.textContent=d.name; tags.appendChild(s); });
+}
+function tickKeys(){
+  const b = bee(); if(!b) return; const t=now();
+  document.querySelectorAll('#keys .key.on').forEach(k=>{ const e=b.events.find(x=>x.bid===k.dataset.bid&&x.t1==null); if(e) k.querySelector('.el').textContent=(t-e.t0).toFixed(1)+'s'; });
+}
+
+function renderLog(){
+  const tb = $('log'); tb.innerHTML='';
+  const b = bee();
+  if(!b || !b.events.length){ tb.innerHTML='<tr><td colspan="5" class="empty">No events yet. Press a behavior key while the video plays or the stopwatch runs.</td></tr>'; return; }
+  [...b.events].sort((a,c)=>c.t0-a.t0).forEach(e=>{
+    const d = beh(e.bid) || {name:'(deleted behavior)',color:'#888',type:'state'};
+    const tr = document.createElement('tr'); if(e.t1==null) tr.className='open';
+    const dur = e.t1==null ? null : e.t1-e.t0;
+    tr.innerHTML = `<td><span class="dot" style="background:${d.color}"></span><span class="n"></span></td>
+      <td class="num"><input type="number" step="0.01" min="0" class="t0" aria-label="Start time"></td>
+      <td class="num">${d.type==='point'?'<span class="help">point</span>':'<input type="number" step="0.01" min="0" class="t1" aria-label="Stop time">'}</td>
+      <td class="num mono">${dur==null? (d.type==='point'?'':'open') : dur.toFixed(2)}</td>
+      <td><button class="ghost go" title="Seek here">↦</button>${e.t1==null&&d.type!=='point'?'<button class="stop">Stop now</button>':''}<button class="ghost del" title="Delete event">✕</button></td>`;
+    tr.querySelector('.n').textContent = d.name;
+    const i0 = tr.querySelector('.t0'); i0.value = f2(e.t0);
+    i0.onchange = ()=>{ snapshot(); e.t0 = Math.max(0,+i0.value); if(d.type==='point') e.t1=e.t0; else if(e.t1!=null && e.t1<e.t0) e.t1=e.t0; changed(); };
+    const i1 = tr.querySelector('.t1');
+    if(i1){ i1.value = f2(e.t1); i1.placeholder='open'; i1.onchange = ()=>{ snapshot(); e.t1 = i1.value===''?null:Math.max(e.t0,+i1.value); changed(); }; }
+    tr.querySelector('.go').onclick = ()=>{ setTime(e.t0); drawTL(); };
+    const st = tr.querySelector('.stop'); if(st) st.onclick = ()=>{ snapshot(); e.t1=Math.max(e.t0, now()); changed(); };
+    tr.querySelector('.del').onclick = ()=>{ snapshot(); b.events = b.events.filter(x=>x!==e); changed(); };
+    tb.appendChild(tr);
+  });
+}
+
+function renderSummary(){
+  const el = $('trialSum'); const b = bee();
+  if(!b){ el.innerHTML='<div class="empty">No bee selected.</div>'; return; }
+  const tr = trials(b); const hasCS = tr[0].onset!=null;
+  const behs = S.behaviors.filter(d=>d.role==='behavior');
+  let h = hasCS ? '' : S.settings.cs
+    ? `<p class="help">No ${esc(beh(S.settings.cs)?.name||'onset')} logged yet, so the whole recording is treated as one trial measured from 0 s.</p>`
+    : `<p class="help">The whole recording is one trial. Latency is measured from 0:00, the start of the video or stopwatch.</p>`;
+  h += '<div class="tbl-wrap"><table><thead><tr><th>Trial</th><th class="num">Onset</th><th>PER</th><th class="num">Latency</th></tr></thead><tbody>';
+  tr.forEach(t=>{ h += `<tr><td>${hasCS?t.i:'all'}</td><td class="num mono">${t.onset==null?'—':f2(t.onset)}</td><td><span class="pill ${t.per?'yes':'no'}">${t.per?'PER 1':'PER 0'}</span>${t.pre?' <span class="pill ex">pre-ext</span>':''}</td><td class="num mono">${t.lat==null?'—':t.lat.toFixed(2)+' s'}</td></tr>`; });
+  h += '</tbody></table></div>';
+  h += '<div class="tbl-wrap"><table><thead><tr><th>Behavior</th>'+tr.map(t=>`<th class="num">${hasCS?'T'+t.i:'All'} n</th><th class="num">${hasCS?'T'+t.i:'All'} s</th>`).join('')+'</tr></thead><tbody>';
+  behs.forEach(d=>{ h += `<tr><td><span class="dot" style="background:${d.color}"></span>${esc(d.name)}</td>`+tr.map(t=>`<td class="num mono">${t.beh[d.id].n||''}</td><td class="num mono">${t.beh[d.id].dur?t.beh[d.id].dur.toFixed(2):''}</td>`).join('')+'</tr>'; });
+  h += '</tbody></table></div>';
+  el.innerHTML = h;
+}
+const isScored = (b, tr) => S.settings.cs ? tr[0].onset!=null : b.events.length>0;
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderAll2(){
+  const rows = []; let maxT = 0;
+  S.bees.forEach(b=>{ const tr=trials(b); maxT=Math.max(maxT,tr.length); rows.push({b,tr,hasCS:isScored(b,tr)}); });
+  const tbl = $('allTbl');
+  if(!rows.length){ tbl.innerHTML='<tbody><tr><td class="empty">No bees yet.</td></tr></tbody>'; $('allStats').textContent=''; return; }
+  let h = '<thead><tr><th>Bee</th><th>Holder</th><th>Group</th>'; for(let i=1;i<=maxT;i++) h+=`<th>T${i}</th>`; h+='<th class="num">PER rate</th><th class="num">Mean latency</th></tr></thead><tbody>';
+  const trialTot = Array(maxT).fill(0), trialN = Array(maxT).fill(0);
+  rows.forEach(({b,tr,hasCS})=>{
+    h+=`<tr><td>${esc(b.label)}${b.example?' <span class="pill ex">example</span>':''}</td><td>${esc(b.holder||'')}</td><td>${esc(b.group||'')}</td>`;
+    for(let i=0;i<maxT;i++){ const t=tr[i]; if(t && hasCS){ trialTot[i]+=t.per; trialN[i]++; h+=`<td><span class="pill ${t.per?'yes':'no'}">${t.per}</span>${t.pre?' <span class="pill ex" title="Extending at trial onset">pre</span>':''}</td>`; } else h+='<td class="help">—</td>'; }
+    const sc = hasCS ? tr : [];
+    const rate = sc.length ? sc.reduce((a,t)=>a+t.per,0)/sc.length : null;
+    const lats = sc.filter(t=>t.lat!=null).map(t=>t.lat);
+    h+=`<td class="num mono">${rate==null?'—':(rate*100).toFixed(0)+'%'}</td><td class="num mono">${lats.length?(lats.reduce((a,c)=>a+c,0)/lats.length).toFixed(2)+' s':'—'}</td></tr>`;
+  });
+  h+='<tr><td colspan="3"><b>% responding</b></td>'; for(let i=0;i<maxT;i++) h+=`<td class="mono">${trialN[i]?Math.round(100*trialTot[i]/trialN[i])+'%':'—'}</td>`; h+='<td></td><td></td></tr></tbody>';
+  tbl.innerHTML = h;
+  $('allStats').textContent = `${S.bees.length} bee${S.bees.length===1?'':'s'} · ${S.bees.reduce((a,b)=>a+b.events.length,0)} events`;
+}
+
+function renderSettings(){
+  const cs = $('s-cs'); cs.innerHTML = '<option value="">None (whole recording)</option>' + S.behaviors.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
+  cs.value = S.behaviors.some(d=>d.id===S.settings.cs) ? S.settings.cs : '';
+  $('s-rw').disabled = !S.settings.cs; $('s-aw').disabled = !S.settings.cs;
+  $('rulesHelp').textContent = S.settings.cs
+    ? 'A trial starts at each onset of the chosen behavior and scores PER = 1 when a counted behavior starts within the response window. Bees already extending at onset are flagged "pre-ext". Durations in the summary are clipped to the summary window.'
+    : 'Each bee\'s whole recording is one trial. It scores PER = 1 if any counted behavior occurs, and latency is the time from 0:00 to the first one. Choose a trial onset only if you add a row that marks when each trial starts.';
+  if(document.activeElement!==$('s-rw')) $('s-rw').value = S.settings.rw;
+  if(document.activeElement!==$('s-aw')) $('s-aw').value = S.settings.aw;
+  $('fps').value = S.settings.fps || 30;
+  const r = $('s-resp'); r.innerHTML='';
+  S.behaviors.filter(d=>d.role==='behavior').forEach(d=>{
+    const l = document.createElement('label'); const c = document.createElement('input'); c.type='checkbox'; c.id='resp-'+d.id;
+    c.checked = S.settings.resp.includes(d.id);
+    c.onchange = ()=>{ S.settings.resp = c.checked ? [...new Set([...S.settings.resp,d.id])] : S.settings.resp.filter(x=>x!==d.id); changed(); };
+    l.append(c, document.createTextNode(d.name)); r.appendChild(l);
+  });
+  renderEtho();
+}
+function renderEtho(){
+  const el = $('etho'); if(el.contains(document.activeElement)) return;
+  el.innerHTML='';
+  S.behaviors.forEach(d=>{
+    const row = document.createElement('div'); row.className='etho-row';
+    row.innerHTML = `<input type="color" aria-label="Color"><input class="nm" aria-label="Name"><input class="k" maxlength="1" aria-label="Key"><select class="ty" aria-label="Type"><option value="state">start/stop</option><option value="point">point</option></select><select class="ro" aria-label="Role"><option value="behavior">behavior</option><option value="stimulus">stimulus</option></select><button class="ghost" title="Remove behavior" aria-label="Remove behavior">✕</button>`;
+    const [col,nm,k,ty,ro,del] = row.querySelectorAll('input,select,button');
+    col.value=d.color; nm.value=d.name; k.value=d.key||''; ty.value=d.type; ro.value=d.role;
+    col.onchange=()=>{d.color=col.value;changed();};
+    nm.onchange=()=>{d.name=nm.value||d.name;changed();};
+    k.onchange=()=>{ const v=k.value.toLowerCase();
+      if(v && !/^[a-z0-9]$/.test(v)){ msg('Keys must be a letter or digit.'); k.value=d.key; return; }
+      if(RESERVED.has(v)){ msg(v.toUpperCase()+' is reserved.'); k.value=d.key; return; }
+      const other = S.behaviors.find(x=>x!==d && x.key===v);
+      if(v && other){ msg(v.toUpperCase()+' is already used by '+other.name+'.'); k.value=d.key; return; }
+      d.key=v; msg(''); changed(); };
+    ty.onchange=()=>{d.type=ty.value;changed();};
+    ro.onchange=()=>{d.role=ro.value;changed();};
+    del.onclick=()=>{ const used = S.bees.some(b=>b.events.some(e=>e.bid===d.id));
+      if(used){ msg(d.name+' has logged events. Delete those events first.'); return; }
+      S.behaviors = S.behaviors.filter(x=>x!==d); S.settings.resp = S.settings.resp.filter(x=>x!==d.id); changed(); };
+    el.appendChild(row);
+  });
+}
+const msg = t => $('ethoMsg').textContent = t;
+
+/* ---------- timeline canvas ---------- */
+const cv = $('tl'); const ctx = cv.getContext('2d');
+const LBL = 150, ROW = 20, TOP = 22;
+let view = {t0:0,t1:30};
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function drawTL(){
+  const b = bee(); const W = cv.clientWidth; const rows = S.behaviors.length;
+  const H = TOP + rows*ROW + 6; const dpr = window.devicePixelRatio||1;
+  if(cv.width!==Math.round(W*dpr) || cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+'px'; }
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const C = {bg:css('--panel'),soft:css('--soft'),line:css('--line'),ink:css('--ink'),muted:css('--muted'),accent:css('--accent'),acs:css('--accent-soft')};
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  const t = now();
+  const evEnd = b ? Math.max(0,...b.events.map(e=>e.t1??t)) : 0;
+  const total = Math.max(hasVideo ? (vid.duration||0) : 0, evEnd, t) + (hasVideo?0:5);
+  const z = $('zoom').value;
+  if(z==='fit'){ view = {t0:0, t1:Math.max(total,10)}; }
+  else { const span=+z; let a = t - span*0.35; a = Math.max(0,a); view = {t0:a, t1:a+span}; }
+  const X = s => LBL + (s-view.t0)/(view.t1-view.t0)*(W-LBL-8);
+  // ticks
+  const span = view.t1-view.t0; const steps=[0.5,1,2,5,10,15,30,60,120,300,600]; const step = steps.find(s=>span/s<=12)||1200;
+  ctx.font = '11px '+css('--mono'); ctx.textBaseline='middle';
+  for(let s=Math.ceil(view.t0/step)*step; s<=view.t1; s+=step){ const x=X(s); ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(x+.5,TOP-4); ctx.lineTo(x+.5,H); ctx.stroke(); ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText(step<1?s.toFixed(1):fmtShort(s), x, 10); }
+  // response windows
+  if(b){ const rw=+S.settings.rw||0; b.events.filter(e=>e.bid===S.settings.cs).forEach(e=>{ const x0=Math.max(LBL,X(e.t0)), x1=Math.min(W-8,X(e.t0+rw)); if(x1>x0){ ctx.fillStyle=C.acs; ctx.fillRect(x0,TOP-4,x1-x0,H-TOP+4); } }); }
+  S.behaviors.forEach((d,i)=>{
+    const y = TOP + i*ROW;
+    if(i%2===0){ ctx.fillStyle=C.soft; ctx.globalAlpha=.55; ctx.fillRect(0,y,W,ROW); ctx.globalAlpha=1; }
+    ctx.fillStyle=d.color; ctx.fillRect(8,y+6,8,8);
+    ctx.fillStyle=C.ink; ctx.textAlign='left'; ctx.font='12px '+css('--sans');
+    let label = d.name; while(ctx.measureText(label).width>LBL-30 && label.length>3) label=label.slice(0,-2)+'…';
+    ctx.fillText(label, 22, y+ROW/2+1);
+    if(!b) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(LBL,0,W-LBL,H); ctx.clip();
+    b.events.filter(e=>e.bid===d.id).forEach(e=>{
+      const x0 = X(e.t0);
+      if(d.type==='point' || e.t1===e.t0){ ctx.fillStyle=d.color; ctx.beginPath(); ctx.moveTo(x0,y+3); ctx.lineTo(x0+5,y+ROW/2); ctx.lineTo(x0,y+ROW-3); ctx.lineTo(x0-5,y+ROW/2); ctx.fill(); return; }
+      const x1 = X(e.t1 ?? t);
+      ctx.fillStyle=d.color; ctx.globalAlpha = e.t1==null ? .55 : .9; ctx.fillRect(x0, y+4, Math.max(2,x1-x0), ROW-8); ctx.globalAlpha=1;
+      if(e.t1==null){ ctx.strokeStyle=d.color; ctx.setLineDash([3,2]); ctx.strokeRect(x0+.5,y+4.5,Math.max(2,x1-x0)-1,ROW-9); ctx.setLineDash([]); }
+    });
+    ctx.restore();
+  });
+  ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(LBL-.5,TOP-4); ctx.lineTo(LBL-.5,H); ctx.stroke();
+  const px = X(t); if(px>=LBL && px<=W){ ctx.strokeStyle=C.accent; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(px,TOP-6); ctx.lineTo(px,H); ctx.stroke(); ctx.lineWidth=1; ctx.fillStyle=C.accent; ctx.beginPath(); ctx.moveTo(px-5,TOP-10); ctx.lineTo(px+5,TOP-10); ctx.lineTo(px,TOP-4); ctx.fill(); }
+}
+const fmtShort = s => s<60 ? s+'s' : Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+let dragging=false;
+function seekFromEvent(ev){ const r=cv.getBoundingClientRect(); const x=ev.clientX-r.left; if(x<LBL) return; const W=cv.clientWidth; const s = view.t0 + (x-LBL)/(W-LBL-8)*(view.t1-view.t0); setTime(s); drawTL(); }
+cv.addEventListener('pointerdown', e=>{ dragging=true; cv.setPointerCapture(e.pointerId); seekFromEvent(e); });
+cv.addEventListener('pointermove', e=>{ if(dragging) seekFromEvent(e); });
+cv.addEventListener('pointerup', ()=>{ dragging=false; });
+window.addEventListener('resize', drawTL);
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawTL);
+new MutationObserver(drawTL).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* ---------- loop ---------- */
+let lastSum = 0;
+function frame(ts){
+  const t = now(); const s = fmt(t);
+  $('clock').textContent = s; $('liveClock').textContent = s;
+  if(isPlaying() || dragging){ drawTL(); tickKeys(); }
+  if(isPlaying() && ts-lastSum>1000){ lastSum=ts; const b=bee(); if(b && b.events.some(e=>e.t1==null)) renderSummary(); }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- video ---------- */
+function openVideo(file){
+  if(!file || !file.type.startsWith('video')){ toast('That file is not a video.'); return; }
+  if(live.running) togglePlay();
+  vid.src = URL.createObjectURL(file); videoName = file.name; hasVideo = true;
+  vid.playbackRate = +$('rate').value;
+  vid.onloadedmetadata = ()=>{ drawTL(); toast('Loaded '+file.name); };
+  vid.onerror = ()=>{ toast('This browser cannot play '+file.name+'. Try an MP4 (H.264) file.'); closeVideo(); };
+  renderTransport();
+}
+function closeVideo(){ vid.pause(); vid.removeAttribute('src'); vid.load(); hasVideo=false; videoName=''; syncLiveFromBee(); renderAll(); }
+vid.addEventListener('play', renderTransport); vid.addEventListener('pause', ()=>{ renderTransport(); drawTL(); renderKeys(); renderSummary(); });
+vid.addEventListener('seeked', ()=>{ drawTL(); renderKeys(); });
+$('pickVid').onclick = ()=>$('vidFile').click();
+$('vidFile').onchange = e=>{ openVideo(e.target.files[0]); e.target.value=''; };
+$('bCloseVid').onclick = closeVideo;
+const stage = $('stage');
+stage.addEventListener('dragover', e=>{ e.preventDefault(); $('drop').classList.add('over'); });
+stage.addEventListener('dragleave', ()=>$('drop').classList.remove('over'));
+stage.addEventListener('drop', e=>{ e.preventDefault(); $('drop').classList.remove('over'); openVideo(e.dataTransfer.files[0]); });
+
+/* ---------- transport ---------- */
+const fpsStep = () => 1/(+S.settings.fps||30);
+function nudge(d){ if(hasVideo) vid.pause(); else if(live.running) togglePlay(); setTime(now()+d); renderKeys(); drawTL(); }
+$('bPlay').onclick=togglePlay;
+$('bBack5').onclick=()=>nudge(-5); $('bBack1').onclick=()=>nudge(-1); $('bFwd1').onclick=()=>nudge(1); $('bFwd5').onclick=()=>nudge(5);
+$('bFrmB').onclick=()=>nudge(-fpsStep()); $('bFrmF').onclick=()=>nudge(fpsStep());
+$('rate').onchange=e=>{ vid.playbackRate=+e.target.value; };
+$('fps').onchange=e=>{ S.settings.fps=Math.max(1,+e.target.value||30); save(); };
+$('zoom').onchange=drawTL;
+$('bResetClock').onclick=()=>{ live.running=false; setTime(0); renderTransport(); drawTL(); };
+function stepRate(dir){ const o=[...$('rate').options]; const i=Math.min(o.length-1,Math.max(0,$('rate').selectedIndex+dir)); $('rate').selectedIndex=i; vid.playbackRate=+o[i].value; toast('Speed '+o[i].value+'×'); }
+
+document.addEventListener('keydown', e=>{
+  const tag = (e.target.tagName||'').toLowerCase();
+  if(['input','select','textarea'].includes(tag) || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if(k===' '){ e.preventDefault(); togglePlay(); return; }
+  if(k==='ArrowLeft'){ e.preventDefault(); nudge(e.shiftKey?-5:-1); return; }
+  if(k==='ArrowRight'){ e.preventDefault(); nudge(e.shiftKey?5:1); return; }
+  if(k===','){ nudge(-fpsStep()); return; }
+  if(k==='.'){ nudge(fpsStep()); return; }
+  if(k==='['){ stepRate(-1); return; }
+  if(k===']'){ stepRate(1); return; }
+  const l = k.toLowerCase();
+  if(l==='z'){ doUndo(); return; }
+  if(l==='n' || l==='b'){ const i=S.bees.findIndex(b=>b.id===S.current); const j=i+(l==='n'?1:-1); if(S.bees[j]) selectBee(S.bees[j].id); return; }
+  const d = S.behaviors.find(x=>x.key && x.key===l);
+  if(d){ e.preventDefault(); if(!e.repeat) toggleBehavior(d.id); }
+});
+
+/* ---------- forms ---------- */
+$('addBee').onsubmit = e=>{
+  e.preventDefault();
+  const label = $('nb-id').value.trim(); if(!label) return;
+  if(S.bees.some(b=>b.label===label)){ toast('A bee called '+label+' already exists.'); return; }
+  if(!hasVideo && live.running){ const b=bee(); if(b) b.clock=now(); }
+  const nb = {id:uid(), label, holder:$('nb-holder').value.trim(), group:$('nb-group').value.trim(), clock:0, events:[]};
+  S.bees.push(nb); S.current=nb.id; syncLiveFromBee();
+  const h = $('nb-holder').value.trim(); const n = parseInt(h.replace(/\D+/g,''),10);
+  $('nb-id').value=''; $('nb-holder').value = isNaN(n) ? '' : h.replace(/\d+$/, String(n+1));
+  changed(); toast('Added '+label);
+};
+$('addBeh').onclick = ()=>{
+  const used = new Set(S.behaviors.map(b=>b.key));
+  const key = [...'1234567890cfhijklqrtvwy'].find(c=>!used.has(c)) || '';
+  S.behaviors.push({id:uid(), name:'New behavior', key, type:'state', role:'behavior', color:PALETTE[S.behaviors.length%PALETTE.length]});
+  changed();
+};
+$('s-cs').onchange=e=>{S.settings.cs=e.target.value; changed();};
+$('s-rw').onchange=e=>{S.settings.rw=Math.max(0,+e.target.value||0); changed();};
+$('s-aw').onchange=e=>{S.settings.aw=Math.max(0,+e.target.value||0); changed();};
+['m-exp','m-date','m-exp-id'].forEach((id,i)=>{ const key=['experimenter','date','experiment'][i]; $(id).value=S.session[key]||''; $(id).onchange=e=>{S.session[key]=e.target.value; save();}; });
+$('bUndo').onclick = doUndo;
+$('bClearBee').onclick = ()=>{ const b=bee(); if(!b||!b.events.length) return; confirmInline($('clearConfirm'),'Delete all '+b.events.length+' events?',()=>{ snapshot(); b.events=[]; $('clearConfirm').innerHTML=''; changed(); }); };
+
+/* ---------- export ---------- */
+const csvCell = v => { if(v==null) return ''; const s=String(v); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+const toCSV = rows => rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
+function eventsCSV(){
+  const rows=[['experiment','experimenter','date','bee_id','holder','group','video','behavior','role','type','start_s','stop_s','duration_s']];
+  S.bees.forEach(b=>[...b.events].sort((a,c)=>a.t0-c.t0).forEach(e=>{ const d=beh(e.bid)||{name:e.bid}; rows.push([S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,b.videoName||'',d.name,d.role,d.type,f2(e.t0),f2(e.t1),e.t1==null?'':f2(e.t1-e.t0)]); }));
+  return toCSV(rows);
+}
+function summaryCSV(){
+  const behs = S.behaviors.filter(d=>d.role==='behavior');
+  const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  const head=['experiment','experimenter','date','bee_id','holder','group','trial','trial_onset_s','per','latency_s','pre_extended','response_window_s','summary_window_s'];
+  behs.forEach(d=>head.push(slug(d.name)+'_count', slug(d.name)+'_dur_s'));
+  const rows=[head];
+  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,t.onset==null?'all':t.i,f2(t.onset),t.per,t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
+  return toCSV(rows);
+}
+const downloadsP = (window.claude && claude.use) ? claude.use('downloads').catch(()=>null) : Promise.resolve(null);
+const inViewer = !!(window.claude && claude.use);
+async function offerFile(filename, text, mime){
+  const d = await downloadsP;
+  if(d){
+    try{ await d.save({filename, data:text}); toast('Saved '+filename); }
+    catch(err){ toast(err && err.code==='declined' ? 'Save cancelled' : 'Could not save the file here. Use Copy summary instead.'); }
+    return;
+  }
+  if(inViewer){ toast('File saving is not available in this view. Use Copy summary instead.'); return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  toast('Saved '+filename);
+}
+const stamp = () => (S.session.date||new Date().toISOString().slice(0,10)) + (S.session.experiment ? '_'+S.session.experiment.replace(/[^\w-]+/g,'-').slice(0,40) : '');
+$('xEvents').onclick = ()=>offerFile('per_events_'+stamp()+'.csv', eventsCSV(), 'text/csv');
+$('xSummary').onclick = ()=>offerFile('per_trials_'+stamp()+'.csv', summaryCSV(), 'text/csv');
+$('xJson').onclick = ()=>offerFile('per_project_'+stamp()+'.json', JSON.stringify(S,null,1), 'application/json');
+$('cpSummary').onclick = ()=>{
+  const text = summaryCSV();
+  navigator.clipboard.writeText(text).then(()=>toast('Trial summary copied. Paste it into a spreadsheet.')).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); toast('Trial summary copied.');}catch(e){ toast('Copy failed.'); } ta.remove();
+  });
+};
+$('iJson').onclick = ()=>$('jsonFile').click();
+$('jsonFile').onchange = e=>{
+  const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.bees||!s.behaviors) throw 0; S=s; S.current=S.current||S.bees[0]?.id; syncLiveFromBee(); ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||''); changed(); toast('Opened '+f.name); }catch(err){ toast('That file is not a PER Scorer project.'); } };
+  r.readAsText(f); e.target.value='';
+};
+
+let toastT;
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),1600); }
+
+syncLiveFromBee();
+renderAll();
+requestAnimationFrame(frame);
+})();
+</script>
