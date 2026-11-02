@@ -99,6 +99,9 @@ canvas#tl{display:block;width:100%;min-width:560px;cursor:crosshair;border-radiu
 .pill.ex{background:var(--accent-soft);color:var(--accent)}
 .addbee{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px}
 .addbee input{width:100%}
+.addbeh{display:grid;grid-template-columns:minmax(0,1fr) 56px auto auto auto;gap:6px;align-items:center;border-top:1px dashed var(--line);padding-top:10px}
+.addbeh input.k{text-align:center;font-family:var(--mono);text-transform:uppercase}
+@media (max-width:640px){.addbeh{grid-template-columns:minmax(0,1fr) 56px}.addbeh>*:nth-child(n+3){grid-column:auto}}
 .beeedit{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:6px 8px;align-items:center}
 .beeedit input{width:100%!important}
 .beeedit #delBeeWrap{grid-column:1/-1;justify-self:end}
@@ -220,22 +223,28 @@ table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
       </section>
 
       <section class="panel" aria-label="Behavior keys">
-        <div class="row spread"><h2>Behavior keys</h2><span class="help">Press a key once to start, again to stop.</span></div>
+        <div class="row spread"><h2>Behavior keys</h2><div class="row"><span class="help">Press a key once to start, again to stop.</span><button id="editEtho">Edit keys &amp; behaviors</button></div></div>
         <div class="keys" id="keys"></div>
+        <form class="addbeh" id="addBehForm" autocomplete="off">
+          <input id="nbh-name" maxlength="60" placeholder="New behavior, e.g. Proboscis extension" aria-label="New behavior name">
+          <input id="nbh-key" class="k" maxlength="1" placeholder="key" aria-label="Key for the new behavior">
+          <select id="nbh-type" aria-label="Type"><option value="state">start/stop</option><option value="point">point</option></select>
+          <label class="inline"><input type="checkbox" id="nbh-per"> Counts as PER</label>
+          <button class="primary" type="submit">Add behavior</button>
+        </form>
+        <p class="help" id="addBehMsg" aria-live="polite" hidden></p>
         <details id="ethoDetails">
           <summary><h2 style="display:inline">Edit ethogram</h2></summary>
           <p class="help" id="ethoNote" style="margin-top:8px"></p>
+          <label class="inline"><input type="checkbox" id="ethoLock"> Lock behavior names (students can still change keys and colors)</label>
           <div class="etho" id="etho"></div>
           <div class="row" style="margin-top:8px">
-            <button id="addBeh">Add behavior</button>
             <button id="ethoExport">Export ethogram</button>
             <button id="ethoImport">Import ethogram…</button>
             <input type="file" id="ethoFile" accept=".json,application/json" hidden>
-            <span id="ethoResetWrap"><button class="ghost" id="ethoReset">Reset to defaults</button></span>
           </div>
           <p class="help" id="ethoMsg" aria-live="polite"></p>
-          <label class="inline" style="margin-top:6px"><input type="checkbox" id="ethoFull"> Allow renaming, adding and removing behaviors</label>
-          <p class="help" id="ethoFullHelp">Type: <b>start/stop</b> logs a bout with duration; <b>point</b> logs a single instant. Role: <b>behavior</b> rows are what the bee did; mark a row <b>stimulus</b> only if you add something you presented, and it is left out of the behavior summary and analysis. Keys Z, N and B are reserved.</p>
+          <p class="help" id="ethoFullHelp">Type: <b>start/stop</b> logs a bout with duration; <b>point</b> logs a single instant. Role: <b>behavior</b> rows are what the bee did; mark a row <b>stimulus</b> only for something you presented, and it is left out of the behavior summary and analysis. ✕ removes a behavior that has no labels yet. Keys Z, N and B are reserved.</p>
         </details>
       </section>
 
@@ -286,6 +295,7 @@ table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
           <button id="xJson">Save project (.json)</button>
           <button id="iJson">Open project…</button>
           <button class="ghost" id="cpSummary">Copy summary</button>
+          <span id="newProjWrap"><button class="ghost" id="newProj">Start new project</button></span>
           <input type="file" id="jsonFile" accept=".json,application/json" hidden>
         </div>
         <p class="help">Work is kept in this browser automatically, but browser storage can be cleared. Save the project file at the end of each session.</p>
@@ -355,41 +365,21 @@ const RESERVED = new Set(['z','n','b']);
 const PALETTE = ['#2f6fd6','#e0732a','#1f9d6a','#c2410c','#8b5cf6','#d23f8f','#0e9aa7','#a16207','#64748b','#dc2626','#4d7c0f','#7c3aed'];
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const DEFAULT_BEHAVIORS = [
-  {id:'pe',  name:'Full proboscis ext.',    key:'p', type:'state', role:'behavior', color:'#e0732a'},
-  {id:'pp',  name:'Partial extension',      key:'e', type:'state', role:'behavior', color:'#d9a21b'},
-  {id:'an',  name:'Antennal movement',      key:'a', type:'state', role:'behavior', color:'#2f6fd6'},
-  {id:'md',  name:'Mandible opening',       key:'m', type:'state', role:'behavior', color:'#1f9d6a'},
-  {id:'gr',  name:'Grooming',               key:'g', type:'state', role:'behavior', color:'#8b5cf6'},
-  {id:'st',  name:'Struggling',             key:'s', type:'state', role:'behavior', color:'#dc2626'},
-  {id:'sx',  name:'Sting extension',        key:'x', type:'state', role:'behavior', color:'#d23f8f'},
-  {id:'df',  name:'Defecation',             key:'d', type:'point', role:'behavior', color:'#64748b'},
-];
+const SERIES = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948'];
 
-function exampleState(){
-  const ev = (bid,t0,t1)=>({id:uid(),bid,t0,t1});
+function emptyState(){
   return {
     session:{experimenter:'',date:new Date().toISOString().slice(0,10),experiment:''},
-    behaviors: DEFAULT_BEHAVIORS.map(b=>({...b})),
-    settings:{cs:'', resp:['pe'], rw:3, aw:10, fps:30, ethoFull:false},
-    conds:[],
-    bees:[
-      {id:uid(), label:'Example bee', holder:'H1', group:'Sucrose 30%', cond:{}, recLen:25, clock:24, example:true, events:[
-        ev('an',1.2,4.8), ev('an',5.4,8.6), ev('md',6.1,6.9), ev('pe',6.3,11.2),
-        ev('gr',14,17.5), ev('pp',20.6,21.4), ev('an',19.3,22.9), ev('df',22.2,22.2)
-      ]},
-      {id:uid(), label:'Example bee 2', holder:'H2', group:'Water', cond:{}, recLen:12, clock:12, example:true, events:[
-        ev('st',2.1,4.4), ev('an',3.6,6.5), ev('md',5.8,6.3)
-      ]},
-    ],
-    current:null,
+    behaviors: [],
+    settings:{cs:'', resp:[], rw:3, aw:10, fps:30, ethoFull:true},
+    conds:[], bees:[], current:null,
   };
 }
 
-let S = migrate(load() || exampleState());
+let S = migrate(load() || emptyState());
 function migrate(s){
   s.conds = s.conds || [];
-  s.settings = Object.assign({cs:'', resp:['pe'], rw:3, aw:10, fps:30, ethoFull:false}, s.settings);
+  s.settings = Object.assign({cs:'', resp:[], rw:3, aw:10, fps:30, ethoFull:true}, s.settings);
   s.an = Object.assign({by:'group', measure:'prop', level:'', idle:false, gap:1, rep:false}, s.an);
   s.bees.forEach(b=>{ b.cond = b.cond || {}; });
   if(!s.current || !s.bees.find(b=>b.id===s.current)) s.current = s.bees[0]?.id || null;
@@ -431,7 +421,7 @@ const f2 = t => t==null||isNaN(t) ? '' : (+t).toFixed(2);
 /* ---------- scoring ---------- */
 function snapshot(){ const b=bee(); if(b){ undo.push({bee:b.id, events:JSON.stringify(b.events)}); if(undo.length>200) undo.shift(); } }
 function toggleBehavior(bid){
-  const b = bee(); if(!b){ toast('Add a bee first'); return; }
+  const b = bee(); if(!b){ toast('Add a bee first, in the Bees panel.'); return; }
   const d = beh(bid); if(!d) return;
   const t = +now().toFixed(3);
   snapshot();
@@ -476,7 +466,7 @@ function trials(b){
       });
       per[d.id] = {n, dur};
     });
-    return {i:i+1, onset:on, per:first?1:0, lat:first? first.t0-o : null, pre, beh:per};
+    return {i:i+1, onset:on, per: resp.size ? (first?1:0) : null, lat:first? first.t0-o : null, pre, beh:per};
   });
 }
 
@@ -501,7 +491,7 @@ function renderBees(){
     const tr = trials(b); const scored = isScored(b, tr);
     const btn = document.createElement('button'); btn.type='button';
     btn.className='bee'+(b.id===S.current?' cur':'');
-    const pills = scored ? tr.map(t=>`<span class="pill ${t.per?'yes':'no'}" title="Trial ${t.i}">${t.per?'+':'−'}</span>`).join(' ') : `<span class="pill na">${S.settings.cs?'no onset':'not scored'}</span>`;
+    const pills = scored ? tr.map(t=>t.per==null ? `<span class="pill na" title="No behavior counts as a PER yet">PER ?</span>` : `<span class="pill ${t.per?'yes':'no'}" title="Trial ${t.i}">${t.per?'+':'−'}</span>`).join(' ') : `<span class="pill na">${S.settings.cs?'no onset':'not scored'}</span>`;
     btn.innerHTML = `<span class="id"></span><span class="row" style="gap:3px;grid-row:span 2">${b.example?'<span class="pill ex">example</span>':''}${pills}</span><span class="sub"></span>`;
     btn.querySelector('.id').textContent = b.label;
     btn.querySelector('.sub').textContent = [b.holder&&('holder '+b.holder), b.group, ...S.conds.map(c=>b.cond[c]), b.events.length+' events'].filter(Boolean).join(' · ');
@@ -553,6 +543,7 @@ function selectBee(id){
 
 function renderKeys(){
   const el = $('keys'); el.innerHTML='';
+  if(!S.behaviors.length) el.innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:left;padding:4px 0">No behaviors yet. Add each behavior you will score: give it a name and a key, and tick <b>Counts as PER</b> for the one that means the bee responded.</div>';
   const b = bee(); const t = now();
   S.behaviors.forEach(d=>{
     const open = b && b.events.find(e=>e.bid===d.id && e.t1==null);
@@ -604,8 +595,9 @@ function renderSummary(){
   let h = hasCS ? '' : S.settings.cs
     ? `<p class="help">No ${esc(beh(S.settings.cs)?.name||'onset')} logged yet, so the whole recording is treated as one trial measured from 0 s.</p>`
     : `<p class="help">The whole recording is one trial. Latency is measured from 0:00, the start of the video or stopwatch.</p>`;
+  if(!S.settings.resp.length) h += `<p class="help">PER is not set yet: tick <b>Counts as a PER</b> for a behavior under Scoring rules.</p>`;
   h += '<div class="tbl-wrap"><table><thead><tr><th>Trial</th><th class="num">Onset</th><th>PER</th><th class="num">Latency</th></tr></thead><tbody>';
-  tr.forEach(t=>{ h += `<tr><td>${hasCS?t.i:'all'}</td><td class="num mono">${t.onset==null?'—':f2(t.onset)}</td><td><span class="pill ${t.per?'yes':'no'}">${t.per?'PER 1':'PER 0'}</span>${t.pre?' <span class="pill ex">pre-ext</span>':''}</td><td class="num mono">${t.lat==null?'—':t.lat.toFixed(2)+' s'}</td></tr>`; });
+  tr.forEach(t=>{ h += `<tr><td>${hasCS?t.i:'all'}</td><td class="num mono">${t.onset==null?'—':f2(t.onset)}</td><td>${t.per==null?'<span class="pill na">not set</span>':`<span class="pill ${t.per?'yes':'no'}">${t.per?'PER 1':'PER 0'}</span>`}${t.pre?' <span class="pill ex">pre-ext</span>':''}</td><td class="num mono">${t.lat==null?'—':t.lat.toFixed(2)+' s'}</td></tr>`; });
   h += '</tbody></table></div>';
   h += '<div class="tbl-wrap"><table><thead><tr><th>Behavior</th>'+tr.map(t=>`<th class="num">${hasCS?'T'+t.i:'All'} n</th><th class="num">${hasCS?'T'+t.i:'All'} s</th>`).join('')+'</tr></thead><tbody>';
   behs.forEach(d=>{ h += `<tr><td><span class="dot" style="background:${d.color}"></span>${esc(d.name)}</td>`+tr.map(t=>`<td class="num mono">${t.beh[d.id].n||''}</td><td class="num mono">${t.beh[d.id].dur?t.beh[d.id].dur.toFixed(2):''}</td>`).join('')+'</tr>'; });
@@ -624,8 +616,8 @@ function renderAll2(){
   const trialTot = Array(maxT).fill(0), trialN = Array(maxT).fill(0);
   rows.forEach(({b,tr,hasCS})=>{
     h+=`<tr><td>${esc(b.label)}${b.example?' <span class="pill ex">example</span>':''}</td><td>${esc(b.holder||'')}</td><td>${esc(b.group||'')}</td>`;
-    for(let i=0;i<maxT;i++){ const t=tr[i]; if(t && hasCS){ trialTot[i]+=t.per; trialN[i]++; h+=`<td><span class="pill ${t.per?'yes':'no'}">${t.per}</span>${t.pre?' <span class="pill ex" title="Extending at trial onset">pre</span>':''}</td>`; } else h+='<td class="help">—</td>'; }
-    const sc = hasCS ? tr : [];
+    for(let i=0;i<maxT;i++){ const t=tr[i]; if(t && hasCS && t.per!=null){ trialTot[i]+=t.per; trialN[i]++; h+=`<td><span class="pill ${t.per?'yes':'no'}">${t.per}</span>${t.pre?' <span class="pill ex" title="Extending at trial onset">pre</span>':''}</td>`; } else h+='<td class="help">—</td>'; }
+    const sc = hasCS ? tr.filter(t=>t.per!=null) : [];
     const rate = sc.length ? sc.reduce((a,t)=>a+t.per,0)/sc.length : null;
     const lats = sc.filter(t=>t.lat!=null).map(t=>t.lat);
     h+=`<td class="num mono">${rate==null?'—':(rate*100).toFixed(0)+'%'}</td><td class="num mono">${lats.length?(lats.reduce((a,c)=>a+c,0)/lats.length).toFixed(2)+' s':'—'}</td></tr>`;
@@ -645,7 +637,7 @@ function renderSettings(){
   if(document.activeElement!==$('s-rw')) $('s-rw').value = S.settings.rw;
   if(document.activeElement!==$('s-aw')) $('s-aw').value = S.settings.aw;
   $('fps').value = S.settings.fps || 30;
-  const r = $('s-resp'); r.innerHTML='';
+  const r = $('s-resp'); r.innerHTML = S.behaviors.some(d=>d.role==='behavior') ? '' : '<span class="help">Add a behavior first.</span>';
   S.behaviors.filter(d=>d.role==='behavior').forEach(d=>{
     const l = document.createElement('label'); const c = document.createElement('input'); c.type='checkbox'; c.id='resp-'+d.id;
     c.checked = S.settings.resp.includes(d.id);
@@ -656,19 +648,20 @@ function renderSettings(){
 }
 function renderEtho(){
   const full = !!S.settings.ethoFull;
-  $('ethoFull').checked = full;
-  $('addBeh').hidden = !full; $('ethoFullHelp').hidden = !full;
-  $('ethoNote').textContent = full
-    ? 'Full editing is on: names, types and roles can be changed, and behaviors added or removed.'
-    : 'Click a key to change it, or the swatch to change a color. Names stay fixed so everyone’s data lines up.';
-  const el = $('etho'); if(el.contains(document.activeElement)) return;
-  el.innerHTML='';
+  $('ethoLock').checked = !full;
+  $('addBehForm').hidden = !full; $('ethoFullHelp').hidden = !full;
+  $('ethoNote').textContent = !S.behaviors.length ? 'No behaviors yet. Add them with the form above.' : full
+    ? 'Change any name, key, color or type here. Changes apply to labels already made.'
+    : 'Names are locked: you can change keys and colors only, so everyone’s data lines up.';
+  const el = $('etho'); if(el.contains(document.activeElement) && el.dataset.full===String(full)) return;
+  el.dataset.full = String(full); el.innerHTML='';
   S.behaviors.forEach(d=>{
     const row = document.createElement('div'); row.className='etho-row';
     row.innerHTML = `<input type="color" aria-label="Color"><input class="nm" aria-label="Name"><input class="k" maxlength="1" aria-label="Key"><select class="ty" aria-label="Type"><option value="state">start/stop</option><option value="point">point</option></select><select class="ro" aria-label="Role"><option value="behavior">behavior</option><option value="stimulus">stimulus</option></select><button class="ghost" title="Remove behavior" aria-label="Remove behavior">✕</button>`;
     const [col,nm,k,ty,ro,del] = row.querySelectorAll('input,select,button');
     col.value=d.color; nm.value=d.name; k.value=d.key||''; ty.value=d.type; ro.value=d.role;
-    if(!full){ nm.readOnly = true; nm.tabIndex = -1; ty.disabled = true; ro.disabled = true; del.hidden = true; }
+    if(!full){ nm.readOnly = true; nm.title = 'Names are locked. Untick “Lock behavior names” above to change them.'; ty.disabled = true; ro.disabled = true; del.hidden = true;
+      nm.onclick = ()=>msg('Names are locked so everyone’s data lines up. Untick “Lock behavior names” above to change them.'); }
     col.onchange=()=>{d.color=col.value;changed();};
     nm.onchange=()=>{d.name=nm.value||d.name;changed();};
     k.onchange=()=>{ const v=k.value.toLowerCase();
@@ -687,17 +680,36 @@ function renderEtho(){
 }
 const msg = t => $('ethoMsg').textContent = t;
 
-$('ethoFull').onchange = e=>{ S.settings.ethoFull = e.target.checked; msg(''); changed(); };
+$('editEtho').onclick = ()=>{ const d = $('ethoDetails');
+  if(d.open){ d.open = false; return; }
+  d.open = true; d.scrollIntoView({block:'nearest', behavior:'smooth'}); setTimeout(()=>document.querySelector('#etho input.k')?.focus(), 250); };
+$('ethoDetails').addEventListener('toggle', ()=>{ $('editEtho').textContent = $('ethoDetails').open ? 'Done editing' : 'Edit keys & behaviors'; });
+$('ethoLock').onchange = e=>{ S.settings.ethoFull = !e.target.checked; msg(''); changed(); };
 function keyClash(list){ const seen = new Set(); list.forEach(d=>{ if(d.key && (seen.has(d.key) || RESERVED.has(d.key))) d.key = ''; else if(d.key) seen.add(d.key); }); }
-$('ethoReset').onclick = ()=>confirmInline($('ethoResetWrap'), S.settings.ethoFull ? 'Restore the default behaviors, keys and colors?' : 'Restore the default keys and colors?', ()=>{
-  const full = !!S.settings.ethoFull, used = id => S.bees.some(b=>b.events.some(e=>e.bid===id));
-  const out = DEFAULT_BEHAVIORS.map(def=>{ const cur = S.behaviors.find(d=>d.id===def.id);
-    return !cur ? (full ? {...def} : null) : full ? {...def} : {...cur, key:def.key, color:def.color}; }).filter(Boolean);
-  S.behaviors.filter(d=>!DEFAULT_BEHAVIORS.some(x=>x.id===d.id)).forEach(d=>{ if(!full || used(d.id)) out.push({...d}); });
-  out.forEach((d,i)=>{ if(i>=DEFAULT_BEHAVIORS.length && out.slice(0,i).some(x=>x.key===d.key)) d.key=''; });
-  S.behaviors = out; S.settings.resp = S.settings.resp.filter(id=>out.some(d=>d.id===id));
-  msg(full ? 'Default behaviors restored.' : 'Default keys and colors restored.'); changed();
-});
+function suggestKey(name){
+  const used = new Set(S.behaviors.map(d=>d.key));
+  return [...(name.toLowerCase().replace(/[^a-z0-9]/g,'') + 'qwertyuiopasdfghjklcvm1234567890')].find(c=>!used.has(c) && !RESERVED.has(c)) || '';
+}
+function addMsg(t){ $('addBehMsg').textContent = t||''; $('addBehMsg').hidden = !t; }
+$('nbh-name').oninput = e=>{ $('nbh-key').placeholder = suggestKey(e.target.value.trim()) || 'key'; };
+$('addBehForm').onsubmit = e=>{
+  e.preventDefault();
+  const name = $('nbh-name').value.trim(), key = ($('nbh-key').value.trim() || suggestKey(name)).toLowerCase();
+  if(!name){ addMsg('Type a name for the behavior first.'); $('nbh-name').focus(); return; }
+  if(S.behaviors.some(d=>d.name.toLowerCase()===name.toLowerCase())){ addMsg('You already have a behavior called '+name+'.'); return; }
+  if(!/^[a-z0-9]$/.test(key)){ addMsg('The key must be a single letter or digit.'); $('nbh-key').focus(); return; }
+  if(RESERVED.has(key)){ addMsg(key.toUpperCase()+' is reserved for undo and switching bees. Pick another key.'); $('nbh-key').focus(); return; }
+  const other = S.behaviors.find(d=>d.key===key);
+  if(other){ addMsg(key.toUpperCase()+' is already used by '+other.name.replace(/\.$/,'')+'.'); $('nbh-key').focus(); return; }
+  const used = new Set(S.behaviors.map(d=>d.color.toLowerCase()));
+  const color = [...SERIES, ...PALETTE].find(c=>!used.has(c)) || PALETTE[S.behaviors.length % PALETTE.length];
+  const d = {id:uid(), name, key, type:$('nbh-type').value, role:'behavior', color};
+  S.behaviors.push(d);
+  if($('nbh-per').checked) S.settings.resp = [...new Set([...S.settings.resp, d.id])];
+  $('nbh-name').value=''; $('nbh-key').value=''; $('nbh-key').placeholder='key'; $('nbh-per').checked=false; $('nbh-type').value='state';
+  addMsg(''); $('nbh-name').focus(); changed();
+  toast(`Added ${name}. Press ${key.toUpperCase()} to label it.`);
+};
 $('ethoExport').onclick = ()=>offerFile('per_ethogram.json', JSON.stringify({kind:'per-scorer-ethogram', version:1,
   behaviors:S.behaviors.map(({id,name,key,type,role,color})=>({id,name,key,type,role,color})), countsAsPer:S.settings.resp, allowFullEditing:!!S.settings.ethoFull}, null, 1), 'application/json');
 $('ethoImport').onclick = ()=>$('ethoFile').click();
@@ -739,6 +751,7 @@ function beeBudget(b){
 }
 const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
 const sd = a => a.length<2 ? 0 : Math.sqrt(a.reduce((x,y)=>x+(y-mean(a))**2,0)/(a.length-1));
+const quant = (sorted, p) => { if(!sorted.length) return null; const i = (sorted.length-1)*p, lo = Math.floor(i), hi = Math.ceil(i); return sorted[lo] + (sorted[hi]-sorted[lo])*(i-lo); };
 // stats helpers (normal / chi-square approximations)
 function erf(x){ const t=1/(1+0.3275911*Math.abs(x)); const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return x>=0?y:-y; }
 const normSf = z => 0.5*(1-erf(z/Math.SQRT2));
@@ -803,39 +816,46 @@ function renderAnalysis(){
   $('anNote').textContent = [`${bees.length} labeled bee${bees.length===1?'':'s'}`, est && S.an.measure==='prop' ? `${est} without a recording length (using the last event instead)` : '', open ? `${open} open bout${open===1?'':'s'}` : ''].filter(Boolean).join(' · ');
   const behs = S.behaviors.filter(d=>d.role==='behavior' && (!M.state || d.type==='state'));
   const val = (b,d) => budgets.get(b).beh[d.id][S.an.measure];
-  const stats = behs.map(d=>({d, lv: byLv.map(g=>{ const v=g.map(b=>val(b,d)).filter(x=>x!=null); return {v, m:v.length?mean(v):0, se:v.length>1?sd(v)/Math.sqrt(v.length):0}; })}));
+  const stats = behs.map(d=>({d, lv: byLv.map(g=>{ const pts = g.map(b=>({b, v:val(b,d)})).filter(p=>p.v!=null), v = pts.map(p=>p.v).sort((x,y)=>x-y);
+    return {pts, v, med:quant(v,.5), q1:quant(v,.25), q3:quant(v,.75)}; })}));
   stats.forEach(s=>s.test = groupTest(s.lv.map(l=>l.v)));
   // legend
-  $('an-legend').innerHTML = levels.map((l,i)=>`<span><i style="background:var(--s${i+1})"></i>${esc(l)} <span class="help">(${byLv[i].length})</span></span>`).join('');
-  // chart: horizontal grouped bars, mean ± SEM, one dot per bee
-  const W = Math.max(320, $('an-chart').clientWidth || 600), LBL = 150, R = 16, top = 6, bh = 9, gap = 2, pad = 9, axisH = 22;
-  const rowH = levels.length*(bh+gap) - gap + pad*2, H = top + behs.length*rowH + axisH;
-  let xmax = 0; stats.forEach(s=>s.lv.forEach(l=>{ xmax = Math.max(xmax, l.m+l.se, ...l.v); }));
+  $('an-legend').innerHTML = levels.map((l,i)=>`<span><i style="background:var(--s${i+1})"></i>${esc(l)} <span class="help">(${byLv[i].length})</span></span>`).join('')
+    + '<span class="help"><svg width="14" height="12" style="vertical-align:-1px"><line x1="7" x2="7" y1="1" y2="11" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/></svg> median · one point per bee</span>';
+  // chart: one lane per group in each behavior row; a point per bee and a line at the median
+  const W = Math.max(320, $('an-chart').clientWidth || 600), LBL = 150, R = 16, top = 6, lane = 18, gap = 4, pad = 8, axisH = 22;
+  const rowH = levels.length*(lane+gap) - gap + pad*2, H = top + behs.length*rowH + axisH;
+  let xmax = 0; stats.forEach(s=>s.lv.forEach(l=>{ xmax = Math.max(xmax, ...l.v); }));
   if(S.an.measure==='prop') xmax = Math.min(1, xmax);
   const step = (()=>{ const raw = (xmax||1)/5, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; })();
   const xm = Math.ceil((xmax||step)/step)*step, X = v => LBL + v/xm*(W-LBL-R);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.label)} for each behavior by ${esc($('an-by').selectedOptions[0].text)}">`;
+  const JIT = [0,-4,4,-2,2,-6,6,-1,1,-5,5,-3,3];
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.label)} for each behavior by ${esc($('an-by').selectedOptions[0].text)}: one point per bee, line at the median">`;
   for(let t=0; t<=xm+1e-9; t+=step){ const x=X(t); svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${H-axisH}" stroke="var(--line)"/><text x="${x}" y="${H-6}" text-anchor="middle">${M.axis(+t.toFixed(6))}</text>`; }
   stats.forEach((s,i)=>{
     const y0 = top + i*rowH;
     if(i) svg += `<line x1="0" x2="${W}" y1="${y0}" y2="${y0}" stroke="var(--line)" stroke-dasharray="2 3"/>`;
     svg += `<text class="lbl" x="${LBL-10}" y="${y0+rowH/2+4}" text-anchor="end">${esc(s.d.name.length>22?s.d.name.slice(0,21)+'…':s.d.name)}</text>`;
     s.lv.forEach((l,j)=>{
-      const y = y0 + pad + j*(bh+gap), cy = y + bh/2, w = Math.max(0, X(l.m)-X(0));
-      const tip = `${s.d.name} · ${levels[j]}\nMean ${M.fmt(l.m)}${l.v.length>1?' ± '+M.fmt(l.se)+' SEM':''}\n${l.v.length} bee${l.v.length===1?'':'s'}`;
-      svg += `<rect x="${X(0)}" y="${y}" width="${w}" height="${bh}" rx="2" fill="var(--s${j+1})"/>`;
-      if(l.v.length>1) svg += `<line x1="${X(Math.max(0,l.m-l.se))}" x2="${X(l.m+l.se)}" y1="${cy}" y2="${cy}" stroke="var(--ink)" stroke-width="1.5" opacity=".7"/>`;
-      l.v.forEach(v=>{ svg += `<circle cx="${X(Math.min(v,xm))}" cy="${cy}" r="2.6" fill="var(--ink)" fill-opacity=".6" stroke="var(--panel)" stroke-width="1"/>`; });
-      svg += `<rect x="${LBL}" y="${y-1}" width="${W-LBL-R}" height="${bh+2}" fill="transparent" data-tip="${esc(tip)}"/>`;
+      const y = y0 + pad + j*(lane+gap), cy = y + lane/2;
+      const tip = `${s.d.name} · ${levels[j]}\n` + (l.v.length ? `Median ${M.fmt(l.med)}` + (l.v.length>2 ? `\nIQR ${M.fmt(l.q1)} – ${M.fmt(l.q3)}` : '') : 'No bees') + `\n${l.v.length} bee${l.v.length===1?'':'s'}`;
+      svg += `<rect x="${LBL}" y="${y-1}" width="${W-LBL-R}" height="${lane+2}" fill="transparent" data-tip="${esc(tip)}"/>`;
+      svg += `<line x1="${X(0)}" x2="${W-R}" y1="${cy}" y2="${cy}" stroke="var(--s${j+1})" stroke-opacity=".25"/>`;
+      l.pts.forEach((p,k)=>{ svg += `<circle cx="${X(Math.min(p.v,xm))}" cy="${cy+JIT[k%JIT.length]}" r="4" fill="var(--s${j+1})" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.2" data-tip="${esc(p.b.label+' · '+levels[j]+'\n'+s.d.name+': '+M.fmt(p.v))}"/>`; });
+      if(l.v.length) svg += `<line x1="${X(l.med)}" x2="${X(l.med)}" y1="${y-1}" y2="${y+lane+1}" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
     });
   });
   $('an-chart').innerHTML = svg + '</svg>';
   // table
   $('an-table').innerHTML = `<thead><tr><th>Behavior</th>${levels.map((l,i)=>`<th class="num"><i class="dot" style="background:var(--s${i+1})"></i>${esc(l)}</th>`).join('')}<th class="num">Test</th></tr></thead><tbody>`
-    + stats.map(s=>`<tr><td>${esc(s.d.name)}</td>${s.lv.map(l=>`<td class="num mono">${l.v.length?M.fmt(l.m)+(l.v.length>1?' ± '+M.fmt(l.se):''):'—'}</td>`).join('')}<td class="num">${levels.length>1?fmtP(s.test):'<span class="help">one group</span>'}</td></tr>`).join('') + '</tbody>';
+    + stats.map(s=>`<tr><td>${esc(s.d.name)}</td>${s.lv.map(l=>`<td class="num mono" data-tip="${l.v.length>2?'Median (interquartile range)':'Median'}">${l.v.length?M.fmt(l.med)+(l.v.length>2?` <span class="help">(${M.fmt(l.q1)}–${M.fmt(l.q3)})</span>`:''):'—'}</td>`).join('')}<td class="num">${levels.length>1?fmtP(s.test):'<span class="help">one group</span>'}</td></tr>`).join('')
+    + `</tbody><tfoot><tr><td colspan="${levels.length+2}" class="help">Median, with the interquartile range when a group has 3 or more bees.</td></tr></tfoot>`;
   // PER by condition
+  if(!behs.length) $('an-chart').innerHTML = '<div class="empty">No behaviors to show for this measure yet.</div>';
   const perRows = byLv.map(g=>{ const r = g.map(b=>trials(b)[0]); const y = r.filter(t=>t.per).length; const lat = r.filter(t=>t.lat!=null).map(t=>t.lat); return {y, n:g.length-y, lat}; });
   const pt = perTest(perRows.map(r=>[r.y,r.n]));
+  if(!S.settings.resp.length){ $('an-per').innerHTML = '<tbody><tr><td class="empty">Tick <b>Counts as a PER</b> for a behavior under Scoring rules to compare PER between groups.</td></tr></tbody>'; }
+  else
   $('an-per').innerHTML = `<thead><tr><th>${esc($('an-by').selectedOptions[0].text.replace(/ \(.*/,''))}</th><th class="num">Bees</th><th class="num">PER 1</th><th class="num">Responding</th><th class="num">Mean latency</th></tr></thead><tbody>`
     + perRows.map((r,i)=>`<tr><td><i class="dot" style="background:var(--s${i+1})"></i>${esc(levels[i])}</td><td class="num mono">${r.y+r.n}</td><td class="num mono">${r.y}</td><td class="num mono">${Math.round(100*r.y/(r.y+r.n))}%</td><td class="num mono">${r.lat.length?mean(r.lat).toFixed(2)+' s':'—'}</td></tr>`).join('')
     + (levels.length>1 ? `<tr><td colspan="4" class="help">Difference in responding</td><td class="num">${fmtP(pt)}</td></tr>` : '') + '</tbody>';
@@ -889,7 +909,7 @@ let view = {t0:0,t1:30};
 function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 function drawTL(){
   const b = bee(); const W = cv.clientWidth; const rows = S.behaviors.length;
-  const H = TOP + rows*ROW + 6; const dpr = window.devicePixelRatio||1;
+  const H = TOP + Math.max(rows,1)*ROW + 6; const dpr = window.devicePixelRatio||1;
   if(cv.width!==Math.round(W*dpr) || cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+'px'; }
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const C = {bg:css('--panel'),soft:css('--soft'),line:css('--line'),ink:css('--ink'),muted:css('--muted'),accent:css('--accent'),acs:css('--accent-soft')};
@@ -925,6 +945,7 @@ function drawTL(){
     });
     ctx.restore();
   });
+  if(!rows){ ctx.fillStyle=C.muted; ctx.font='12px '+css('--sans'); ctx.textAlign='left'; ctx.fillText('Each behavior you add gets a row here.', 8, TOP+2); }
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(LBL-.5,TOP-4); ctx.lineTo(LBL-.5,H); ctx.stroke();
   const px = X(t); if(px>=LBL && px<=W){ ctx.strokeStyle=C.accent; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(px,TOP-6); ctx.lineTo(px,H); ctx.stroke(); ctx.lineWidth=1; ctx.fillStyle=C.accent; ctx.beginPath(); ctx.moveTo(px-5,TOP-10); ctx.lineTo(px+5,TOP-10); ctx.lineTo(px,TOP-4); ctx.fill(); }
 }
@@ -1028,12 +1049,6 @@ $('addBee').onsubmit = e=>{
   $('nb-id').value=''; $('nb-holder').value = isNaN(n) ? '' : h.replace(/\d+$/, String(n+1));
   changed(); toast('Added '+label);
 };
-$('addBeh').onclick = ()=>{
-  const used = new Set(S.behaviors.map(b=>b.key));
-  const key = [...'1234567890cfhijklqrtvwy'].find(c=>!used.has(c)) || '';
-  S.behaviors.push({id:uid(), name:'New behavior', key, type:'state', role:'behavior', color:PALETTE[S.behaviors.length%PALETTE.length]});
-  changed();
-};
 $('s-cs').onchange=e=>{S.settings.cs=e.target.value; changed();};
 $('s-rw').onchange=e=>{S.settings.rw=Math.max(0,+e.target.value||0); changed();};
 $('s-aw').onchange=e=>{S.settings.aw=Math.max(0,+e.target.value||0); changed();};
@@ -1055,7 +1070,7 @@ function summaryCSV(){
   const head=['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'recording_s','trial','trial_onset_s','per','latency_s','pre_extended','response_window_s','summary_window_s'];
   behs.forEach(d=>head.push(slug(d.name)+'_count', slug(d.name)+'_dur_s'));
   const rows=[head];
-  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.recLen||'',t.onset==null?'all':t.i,f2(t.onset),t.per,t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
+  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.recLen||'',t.onset==null?'all':t.i,f2(t.onset),t.per??'',t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
   return toCSV(rows);
 }
 const condCol = c => c.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') || 'condition';
@@ -1082,6 +1097,11 @@ $('cpSummary').onclick = ()=>{
     const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); toast('Trial summary copied.');}catch(e){ toast('Copy failed.'); } ta.remove();
   });
 };
+$('newProj').onclick = ()=>confirmInline($('newProjWrap'), 'Clear all bees, labels and behaviors? Save the project first if you need it.', ()=>{
+  S = migrate(emptyState()); undo.length = 0; syncLiveFromBee(); addMsg(''); msg('');
+  ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||'');
+  changed(); toast('New project started.');
+});
 $('iJson').onclick = ()=>$('jsonFile').click();
 $('jsonFile').onchange = e=>{
   const f=e.target.files[0]; if(!f) return; const r=new FileReader();

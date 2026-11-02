@@ -64,6 +64,10 @@ tr{break-inside:avoid}
 .answers{font-size:9pt;color:var(--muted);border-top:1px dashed var(--line);padding-top:6pt;margin-top:10pt}
 .card{border:1.5px solid var(--ink);border-radius:8px;padding:14pt 16pt}
 .card table td:first-child{width:1.3in}
+.card table.fill td{height:22pt;vertical-align:bottom}
+.card table.fill td:first-child{width:0.5in}
+.blank-key{display:inline-block;width:22pt;height:18pt;border:1px solid var(--ink);border-radius:4px}
+.blank-line{display:block;border-bottom:1px solid var(--muted);height:16pt}
 </style>
 </head>
 <body>
@@ -82,6 +86,7 @@ tr{break-inside:avoid}
       <div>
         <h3>You will learn to</h3>
         <ul>
+          <li>Build your own ethogram: behaviors, keys and clear definitions</li>
           <li>Recognize a full proboscis extension and the behaviors around it</li>
           <li>Use slow motion and frame stepping to time each behavior</li>
           <li>Label behavior bouts with start and stop key presses</li>
@@ -102,7 +107,7 @@ tr{break-inside:avoid}
     </div>
     <ol class="toc">
       <li>What PER is and why we score it</li>
-      <li>The ethogram: what each behavior looks like</li>
+      <li>Building your ethogram</li>
       <li>A tour of the screen</li>
       <li>Scoring a bee, step by step</li>
       <li>How a bee gets scored</li>
@@ -137,8 +142,18 @@ tr{break-inside:avoid}
 
 <section>
   <div class="eyebrow">Part 2</div>
-  <h2>The ethogram: what each behavior looks like</h2>
-  <p>Every scorer in the lab has to use the same definitions, or your data cannot be combined. Read these before you watch any video, and keep this page next to you for your first few bees. Your instructor may adjust the definitions for your project; their version always wins.</p>
+  <h2>Building your ethogram</h2>
+  <p>PER Scorer starts with no behaviors. Before you score, you decide <b>what</b> you will record and write a definition for each behavior: what you must see for it to start, and what ends it. That list is your <b>ethogram</b>. Anyone reading your definitions should be able to score a video and get the same answer you did.</p>
+  <h3>Writing good definitions</h3>
+  <ul>
+    <li><b>Describe what you see, not what you think it means.</b> "Proboscis crosses the line between the open mandible tips" can be checked on a frame; "the bee is hungry" cannot.</li>
+    <li><b>Give a start and a stop.</b> If you cannot say when a behavior ends, record it as a single <i>point</i> instead.</li>
+    <li><b>Keep the list short.</b> Five to eight behaviors is plenty. Each extra key is one more thing to watch for.</li>
+    <li><b>Decide which behavior is the response.</b> Exactly one behavior, usually the full proboscis extension, should be marked <i>Counts as PER</i> (Part 4, step 3).</li>
+    <li><b>Agree as a group</b> if you are pooling data, and use the same names. Your instructor can share one ethogram file with the class.</li>
+  </ul>
+  <h3>Example: an ethogram for a PER experiment</h3>
+  <p>This is one reasonable ethogram, with suggested keys. Use it as a model for your own wording.</p>
   <table>
     <tr><th style="width:0.35in">Key</th><th style="width:1.45in">Behavior</th><th style="width:0.75in">Type</th><th>Start when… / Stop when…</th></tr>
     <tr><td><kbd>P</kbd></td><td><span class="dot" style="background:#e0732a"></span>Full proboscis extension</td><td>Bout</td><td>Start on the first frame the proboscis extends past an imaginary line between the tips of the open mandibles. Stop when it retracts back behind that line.</td></tr>
@@ -163,7 +178,7 @@ tr{break-inside:avoid}
 </section>
 
 <section class="flow">
-  <figure><img src="img/keys.png" alt="Behavior keys"><figcaption><b>Behavior keys.</b> Each button shows its keyboard key. A button turns amber while its bout is running and shows the elapsed time. You can click the buttons instead of pressing keys. <i>Edit ethogram</i> lets you change any key or color (see Part 4).</figcaption></figure>
+  <figure><img src="img/keys.png" alt="Behavior keys"><figcaption><b>Behavior keys.</b> The behaviors you have created, each with its key. A button turns amber while its bout is running and shows the elapsed time; you can click the buttons instead of pressing keys. Below them is the form for adding a behavior. <i>Edit keys &amp; behaviors</i> opens the editor for renaming, recoloring or changing keys.</figcaption></figure>
   <figure><img src="img/log.png" alt="Event log"><figcaption><b>Event log.</b> Every bout you have labeled for the current bee, newest first. You can type in a start or stop time to correct it, jump to the event (↦), or delete it (✕). A bout that is still running is highlighted and has a <i>Stop now</i> button.</figcaption></figure>
   <div class="pair">
     <figure><img src="img/bees.png" alt="Bees panel"><figcaption><b>Bees.</b> Your roster. The green <span class="pill yes">+</span> and red <span class="pill no">−</span> marks show each bee's PER result; unlabeled bees say <i>not scored</i>. Add bees with the form. Below it you can edit the selected bee, including its recording length and any conditions your instructor asks you to fill in.</figcaption></figure>
@@ -183,15 +198,19 @@ tr{break-inside:avoid}
   <p>In the <b>Bees</b> panel, type the bee's ID, holder number and treatment group, then click <i>Add</i>. The new bee becomes the selected bee. If the holder number ends in a digit, the form fills in the next one for you (H1, then H2…), so adding a whole rack is quick.</p>
   <div class="note"><b>Group labels and blinding.</b> If your project is run blind, your instructor will give you coded group labels. Do not try to work out which group is which while scoring.</div>
 
-  <div class="step"><div class="n">3</div><h3>Load the video, or set up for live scoring</h3></div>
+  <div class="step"><div class="n">3</div><h3>Create your behaviors</h3></div>
+  <p>You only do this once per project. In the keys panel, type the name of a behavior from your ethogram, choose a key (PER Scorer suggests one from the name), choose <i>start/stop</i> or <i>point</i>, and click <i>Add behavior</i>. For the behavior that means the bee responded, tick <b>Counts as PER</b> before adding it. Repeat for each behavior. Each one gets a color, a button and a row on the timeline.</p>
+  <p>Keys must be single letters or digits, and each key can only be used once. <kbd>Z</kbd>, <kbd>N</kbd> and <kbd>B</kbd> are reserved for undo and switching bees. If your instructor gives you an ethogram file, skip the typing: click <i>Edit keys &amp; behaviors</i> and use <i>Import ethogram…</i>.</p>
+
+  <div class="step"><div class="n">4</div><h3>Load the video, or set up for live scoring</h3></div>
   <p><b>From video (recommended):</b> click <i>Open video file…</i>, drag the file onto the black area, or paste a link to the video into the box next to the button and click <i>Load link</i>. A link has to point straight at a video file (usually ending in .mp4); YouTube links and Google Drive or Dropbox sharing links open a web page instead, so download those videos and open them as files. Set the <b>fps</b> box to the camera's frame rate (ask your instructor; 30 and 60 are common) so the frame-step buttons move exactly one frame.</p>
   <p><b>Live, at the bench:</b> skip the video. Press <kbd>Space</kbd> to start the stopwatch at the moment you begin, and score in real time. Live scoring is harder because you cannot rewind, so use it only if your instructor asks you to.</p>
   <p>The scorer reads each bee's <b>recording length</b> from the video. You can see and correct it in the <i>Length (s)</i> box under the bee list; it is what proportions of time are calculated from.</p>
   <p>If several holders appear in the same video, score it once per bee: select a bee, score the whole video for that bee, then select the next bee and start again from 0:00.</p>
 
-  <div class="note"><b>Changing a key.</b> If a key is awkward for you, open <i>Edit ethogram</i> under the keys, click the key's box and type a new letter or digit. A key that is already taken is refused, and <kbd>Z</kbd>, <kbd>N</kbd> and <kbd>B</kbd> are reserved. Behavior names stay fixed so everyone's data lines up. If your instructor gives you an ethogram file, load it with <i>Import ethogram…</i>; <i>Reset to defaults</i> puts the standard keys back.</div>
+  <div class="note"><b>Changing a behavior later.</b> Click <i>Edit keys &amp; behaviors</i> to rename a behavior, change its key or color, or remove one you have not used yet. Renaming does not lose any labels. If your instructor has locked the names, you can still change keys and colors. <i>Export ethogram</i> saves your behaviors to a file you can reuse or share.</div>
 
-  <div class="step"><div class="n">4</div><h3>Label the bee's behavior</h3></div>
+  <div class="step"><div class="n">5</div><h3>Label the bee's behavior</h3></div>
   <p>Make sure the video is at 0:00 (click the left end of the timeline) and press <kbd>Space</kbd> to play. Press a behavior's key once when it starts and once more when it stops. Watch the head and mouthparts closely, especially in the seconds after the stimulus is presented. If a lot happens at once, watch the clip through once first, then score it on a second pass.</p>
   <ul>
     <li><b>Slow down</b> for the seconds around the stimulus: choose 0.5× or 0.25× in <i>Speed</i>, or press <kbd>[</kbd>.</li>
@@ -200,18 +219,18 @@ tr{break-inside:avoid}
     <li><b>Zoom</b> the timeline with <i>View</i> (8, 20 or 60 seconds around the playhead) when bouts are short.</li>
   </ul>
 
-  <div class="step"><div class="n">5</div><h3>Check your labels in the event log</h3></div>
+  <div class="step"><div class="n">6</div><h3>Check your labels in the event log</h3></div>
   <p>Before moving on, read through the event log. Look for bouts still marked <i>open</i> (you forgot the stop press), and very short bouts from accidental key presses. Click ↦ to jump to any event and check it against the video. Fix times by typing new values.</p>
 
-  <div class="step"><div class="n">6</div><h3>Read the result and move to the next bee</h3></div>
-  <p>The <b>PER summary</b> panel now shows PER 1 or PER 0 for the bee, with its latency. If a result looks surprising, go back and look at the video again before you change anything. Press <kbd>N</kbd> to select the next bee (or <kbd>B</kbd> to go back), and repeat steps 3 to 6.</p>
+  <div class="step"><div class="n">7</div><h3>Read the result and move to the next bee</h3></div>
+  <p>The <b>PER summary</b> panel now shows PER 1 or PER 0 for the bee, with its latency. If a result looks surprising, go back and look at the video again before you change anything. Press <kbd>N</kbd> to select the next bee (or <kbd>B</kbd> to go back), and repeat steps 4 to 7.</p>
 </section>
 
 <section class="flow" style="margin-top:22pt">
   <div class="eyebrow">Part 5</div>
   <h2>How a bee gets scored</h2>
   <p>You never type PER 1 or PER 0 yourself. PER Scorer works it out from your labels with one rule:</p>
-  <div class="note"><b>The rule.</b> A bee scores <span class="pill yes">PER 1</span> if at least one <b>full proboscis extension</b> appears anywhere in her recording. Otherwise she scores <span class="pill no">PER 0</span>. <b>Latency</b> is the time from 0:00 to the start of her first full extension.</div>
+  <div class="note"><b>The rule.</b> A bee scores <span class="pill yes">PER 1</span> if at least one bout of the behavior you marked <b>Counts as PER</b> appears anywhere in her recording. Otherwise she scores <span class="pill no">PER 0</span>. <b>Latency</b> is the time from 0:00 to the start of the first such bout. In the examples below, that behavior is the full proboscis extension. Until a behavior is marked, PER shows as <i>not set</i>.</div>
   <p>The diagram below shows the first 12 seconds of the two example bees that come preloaded in PER Scorer.</p>
   <div class="diagram" style="padding:8pt 40pt 4pt">
     <svg viewBox="0 0 640 236" font-family="IBM Plex Sans, sans-serif" font-size="11">
@@ -286,7 +305,7 @@ tr{break-inside:avoid}
   <div class="eyebrow">Part 7</div>
   <h2>Comparing groups and transitions</h2>
   <p>The <b>Analysis</b> panel at the bottom of the page compares bees across conditions. It updates as you label, and uses every bee that has at least one label.</p>
-  <figure><img src="img/analysis.png" alt="Analysis panel"><figcaption><b>Analysis.</b> Left: the time budget, one bar per group for each behavior (mean, with a line for ± SEM and a dot for each bee), and a table of the same numbers. Right: PER by condition, and the transition matrix. Hover over a bar or cell for its exact value.</figcaption></figure>
+  <figure><img src="img/analysis.png" alt="Analysis panel"><figcaption><b>Analysis.</b> Left: the time budget. Each behavior has one lane per group, with a point for each bee and a dark line at the group's median; the table below gives the median and interquartile range. Right: PER by condition, and the transition matrix. Hover over a bar or cell for its exact value.</figcaption></figure>
   <h3>Conditions</h3>
   <p>Every bee already has a <b>Group</b>. To compare bees by something else, click <i>+ Add condition</i> under the bee list (for example <i>Colony</i> or <i>Day</i>) and fill it in for each bee. Choose what to compare with <i>Compare by</i>.</p>
   <h3>Time budget</h3>
@@ -314,6 +333,7 @@ tr{break-inside:avoid}
   <table>
     <tr><th style="width:2.2in">Problem</th><th>What to do</th></tr>
     <tr><td>The video will not play</td><td>The browser cannot read that format. Ask your instructor for an MP4 (H.264) copy, or convert it with a free tool such as HandBrake.</td></tr>
+    <tr><td>PER shows "not set"</td><td>No behavior counts as a PER yet. Tick <i>Counts as a PER</i> for your response behavior under Scoring rules.</td></tr>
     <tr><td>A video link will not load</td><td>The link has to point straight at a video file. YouTube links and Drive or Dropbox sharing links open a web page; download the video and use <i>Open video file…</i>.</td></tr>
     <tr><td>I pressed a key and nothing happened</td><td>The cursor is probably in a text box. Click on an empty part of the page, then try again.</td></tr>
     <tr><td>I forgot to press stop</td><td>Find the open bout in the event log and type the correct stop time, or jump to the right moment and click <i>Stop now</i>.</td></tr>
@@ -329,7 +349,7 @@ tr{break-inside:avoid}
   <p>Answer these before you score real data. Assume the default settings: the whole recording is one trial, and only full extensions count as a PER.</p>
   <ol class="qa">
     <li>A bee's proboscis first crosses the mandible line at 13.8 s. What are her PER score and latency?</li>
-    <li>The proboscis unfolds at 7.1 s, but never passes the tips of the mandibles. Which key do you use, and what is the bee's PER score if nothing else happens?</li>
+    <li>The proboscis unfolds at 7.1 s, but never passes the tips of the mandibles. Using the example ethogram in Part 2, what do you label it as, and what is the bee's PER score if nothing else happens?</li>
     <li>You finish a bee and the event log shows one Grooming bout as <i>open</i>. What happened, and how do you fix it?</li>
     <li>A bee fully extends from 4.2 to 5.0 s and again from 9.0 to 12.5 s. What are her PER, latency, and the n and s for Full proboscis extension?</li>
     <li>You scored 20 bees yesterday on a lab computer. Today the Bees panel is empty. What do you do?</li>
@@ -338,7 +358,7 @@ tr{break-inside:avoid}
   <div class="answers">
     <b>Answers.</b>
     1. PER 1, latency 13.80 s.
-    2. <kbd>E</kbd>, partial extension. PER 0, because partial extensions do not count by default.
+    2. Partial extension. PER 0, because only the behavior marked Counts as PER (full extension) counts.
     3. You never pressed stop. Type the stop time in the log, or jump to the right moment and use <i>Stop now</i>.
     4. PER 1, latency 4.20 s, n = 2, s = 4.30 (0.8 + 3.5).
     5. Open your saved project file with <i>Open project…</i>. If you did not save one, the labels are gone and the videos need to be rescored.
@@ -367,27 +387,28 @@ tr{break-inside:avoid}
           <tr><td><kbd>Z</kbd></td><td>Undo last change</td></tr>
           <tr><td><kbd>N</kbd> / <kbd>B</kbd></td><td>Next / previous bee</td></tr>
           <tr><td>Event log</td><td>Type new times, ↦ jump, ✕ delete</td></tr>
-          <tr><td>Edit ethogram</td><td>Change a key or color</td></tr>
+          <tr><td>Edit keys &amp; behaviors</td><td>Change a key or color</td></tr>
         </table>
       </div>
       <div>
-        <h3 style="margin-top:0">Labels: press to start, press again to stop</h3>
-        <table>
-          <tr><td><kbd>P</kbd></td><td>Full proboscis extension</td></tr>
-          <tr><td><kbd>E</kbd></td><td>Partial extension</td></tr>
-          <tr><td><kbd>A</kbd></td><td>Antennal movement</td></tr>
-          <tr><td><kbd>M</kbd></td><td>Mandible opening</td></tr>
-          <tr><td><kbd>G</kbd></td><td>Grooming</td></tr>
-          <tr><td><kbd>S</kbd></td><td>Struggling</td></tr>
-          <tr><td><kbd>X</kbd></td><td>Sting extension</td></tr>
-          <tr><td><kbd>D</kbd></td><td>Defecation (one press)</td></tr>
+        <h3 style="margin-top:0">My keys: press to start, press again to stop</h3>
+        <table class="fill">
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
+          <tr><td><span class="blank-key"></span></td><td><span class="blank-line"></span></td></tr>
         </table>
+        <p style="font-size:8.5pt;color:var(--muted);margin:4pt 0 0">Write in your own behaviors. Circle the one that counts as a PER.</p>
       </div>
     </div>
     <h3>Every bee</h3>
     <ol style="columns:2;column-gap:20pt;margin-bottom:4pt">
       <li>Select the bee (check the badge on the video)</li>
-      <li>Go to 0:00</li>
+      <li>Go to 0:00 (your behaviors are already set up)</li>
       <li>Press <kbd>Space</kbd> to play</li>
       <li>Label behaviors, slowing down near the stimulus</li>
       <li>Check the event log for open or accidental bouts</li>

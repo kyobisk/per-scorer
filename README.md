@@ -19,13 +19,13 @@ Videos can be opened from a file or from a direct link to a video file. A link c
 
 ### Ethogram
 
-By default students can change each behavior's key and color, but not its name, so everyone's exports have the same columns. **Edit ethogram → Allow renaming, adding and removing behaviors** unlocks full editing. **Export ethogram** saves the behaviors, keys and PER rules as a small JSON file that students load with **Import ethogram…**; **Reset to defaults** restores the standard keys.
+By default students can change each behavior's key and color, but not its name, so everyone's exports have the same columns. **Edit keys & behaviors → Allow renaming, adding and removing behaviors** unlocks full editing. **Export ethogram** saves the behaviors, keys and PER rules as a small JSON file that students load with **Import ethogram…**; **Reset to defaults** restores the standard keys.
 
 ### Analysis
 
 The Analysis panel compares bees by Group or by any condition added under the bee list (e.g. Colony, Day):
 
-- **Time budget**: proportion of recording (default), total time, number of bouts or mean bout length per behavior, as group means ± SEM with one dot per bee. Each bee's recording length is read from the video and can be edited.
+- **Time budget**: proportion of recording (default), total time, number of bouts or mean bout length per behavior, plotted as one point per bee with a line at each group's median; the table shows median (IQR). Each bee's recording length is read from the video and can be edited.
 - **PER by condition**: responders and mean latency per group.
 - **Transitions**: a row-normalized matrix of which behavior follows which, pooled over the selected bees, with optional idle gaps and self-transitions.
 - Exploratory tests (Mann–Whitney / Kruskal–Wallis, Fisher's exact / chi-square), not corrected for multiple comparisons. **Time budget CSV** and **Transitions CSV** export per-bee data for formal analysis.
