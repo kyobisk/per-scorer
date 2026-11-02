@@ -15,6 +15,14 @@ OUT = ROOT / "narration"
 voice = sys.argv[1] if len(sys.argv) > 1 else "Samantha"
 rate = sys.argv[2] if len(sys.argv) > 2 else "180"
 
+# `say` falls back to the default voice when the named one is missing, so check first.
+listing = subprocess.run(["say", "-v", "?"], capture_output=True, text=True).stdout.splitlines()
+installed = dict(m.groups() for m in (re.match(r"(.+?)\s+([a-z]{2,3}[_-]\w+)\s", line) for line in listing) if m)
+if voice not in installed:
+    english = sorted(n for n, loc in installed.items() if loc.startswith("en"))
+    sys.exit(f'Voice "{voice}" is not installed, so nothing was recorded.\n'
+             f'Installed English voices: {", ".join(english)}')
+
 src = PAGE.read_text()
 block = re.search(r"const CAPTIONS = \[(.*?)\n\];", src, re.S).group(1)
 caps = [(float(t), txt) for t, txt in re.findall(r"\[([\d.]+),'([^']*)'\]", block)]
