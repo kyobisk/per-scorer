@@ -80,11 +80,10 @@ kbd{font-family:var(--mono);font-size:12px;background:var(--soft);border:1px sol
 .m-right{position:absolute;left:826px;right:14px;top:60px;display:flex;flex-direction:column;gap:10px}
 .m-p{background:#fff;border:1px solid #d9e0e5;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .m-h{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#5d6b78;display:flex;justify-content:space-between;height:16px;align-items:center}
-.m-vid{position:relative;width:778px;height:340px;border-radius:6px;overflow:hidden;background:#0b0e11}
-.m-vid canvas{display:block;width:778px;height:340px}
-.m-drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#c9d2da;text-align:center}
-.m-drop .big{font-family:var(--mono);font-size:44px;color:#fff}
-.m-drop b{color:#fff;font-size:14px}
+.m-src{display:flex;gap:5px;align-items:center;height:28px}
+.m-vid{position:relative;width:778px;height:312px;border-radius:6px;overflow:hidden;background:#0b0e11}
+.m-vid canvas{display:block;width:778px;height:312px}
+.m-drop{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:#8d9aa5;font-size:11px}
 .m-badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.65);color:#fff;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px}
 .m-act{position:absolute;left:8px;bottom:8px;display:flex;gap:5px}
 .m-act span{font-size:11px;font-weight:600;color:#fff;padding:2px 7px;border-radius:4px}
@@ -170,14 +169,10 @@ kbd{font-family:var(--mono);font-size:12px;background:var(--soft);border:1px sol
           </div>
           <div class="m-left">
             <div class="m-p" id="p-video">
+              <div class="m-src"><span class="m-btn pri" id="b-open">Open video file…</span><span class="m-in ph" style="flex:1">…or paste a link to a video file (.mp4, .webm)</span><span class="m-btn">Load link</span></div>
               <div class="m-vid">
-                <canvas id="vcv" width="1556" height="680"></canvas>
-                <div class="m-drop" id="m-drop">
-                  <div class="big">00:00.00</div>
-                  <b>Live mode: scoring against a stopwatch</b>
-                  <span style="font-size:12px">Drop a video of the harnessed bee here, or press Space to score live.</span>
-                  <span class="m-btn pri" id="b-open">Open video…</span>
-                </div>
+                <canvas id="vcv" width="1556" height="624"></canvas>
+                <div class="m-drop" id="m-drop">No video loaded. Open a file or link above, or drop a video here. Press Space to score live with the stopwatch.</div>
                 <div class="m-badge" id="badge"></div>
                 <div class="m-act" id="m-act"></div>
               </div>
@@ -298,7 +293,7 @@ const CAPTIONS = [
   [6,'PER Scorer turns key presses into proboscis extension data. Let’s score one bee, start to finish.'],
   [9,'First, add the bee. Type its ID, holder number and treatment group.'],
   [17.5,'Click Add. The new bee is selected, and its ID appears on the video, so you always know which bee you’re scoring.'],
-  [26,'Next, open that bee’s video. You can also drag the file onto the video area.'],
+  [26,'Next, open that bee’s video file, or paste a link to it.'],
   [31,'Set fps to your camera’s frame rate, so each frame step is exactly one frame.'],
   [36,'No video? Press Space to run a stopwatch and score live instead.'],
   [40,'Press Space to play. Watch the antennae and the mouthparts.'],
@@ -486,7 +481,7 @@ function scan(v){ if(v>=2 && v<5) return v<2.2 ? ramp(v,2,2.2) : v<4.8 ? 1 : 1-r
 function mand(v){ if(v>=5.25 && v<8.75) return v<5.45 ? ramp(v,5.25,5.45) : v<8.55 ? 1 : 1-ramp(v,8.55,8.75); if(v>=11 && v<11.8) return 0.4; return 0; }
 const FUZZ = Array.from({length:180}, (_,i)=>{ const r = Math.sin(i*12.9898)*43758.5453; const f = r - Math.floor(r); const g = Math.sin(i*78.233)*12345.678; return [f, g - Math.floor(g)]; });
 function drawBee(v, T, showLine){
-  const c = vctx; c.setTransform(2,0,0,2,0,0);
+  const c = vctx; c.setTransform(2,0,0,2,0,-28);
   const W = 778, H = 340;
   const bg = c.createRadialGradient(330,170,40,330,170,520); bg.addColorStop(0,'#3a4349'); bg.addColorStop(1,'#161b1f');
   c.fillStyle = bg; c.fillRect(0,0,W,H);
@@ -537,11 +532,12 @@ function drawBee(v, T, showLine){
     c.beginPath(); c.moveTo(301,212); c.lineTo(301,274); c.stroke(); c.setLineDash([]);
     c.fillStyle = '#f0a92e'; c.font = '600 12px "IBM Plex Sans", sans-serif'; c.fillText('mandible line', 222, 206);
   }
-  // camera overlay
+  // camera overlay (drawn in the visible frame, 312 px tall)
+  c.setTransform(2,0,0,2,0,0); const HV = 312;
   c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(W-150,8,142,22);
   c.fillStyle = '#fff'; c.font = '12px "IBM Plex Mono", monospace'; c.fillText('B07_trial1.mp4', W-142, 23);
-  c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(W-96,H-30,88,22);
-  c.fillStyle = '#fff'; c.fillText(fmt(v), W-88, H-15);
+  c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(W-96,HV-30,88,22);
+  c.fillStyle = '#fff'; c.fillText(fmt(v), W-88, HV-15);
 }
 
 /* ---------- timeline canvas ---------- */
@@ -606,7 +602,7 @@ function drawOverlays(s, T){
 }
 
 /* ---------- narration: recorded clips, with holds where a line needs more time than its slot ---------- */
-/*NARRATION*/const NARRATION = {"voice":"Samantha","clips":[{"t":6.0,"file":"01.m4a","dur":6.26},{"t":9.0,"file":"02.m4a","dur":4.55},{"t":17.5,"file":"03.m4a","dur":6.42},{"t":26.0,"file":"04.m4a","dur":4.92},{"t":31.0,"file":"05.m4a","dur":5.16},{"t":36.0,"file":"06.m4a","dur":3.79},{"t":40.0,"file":"07.m4a","dur":3.45},{"t":43.6,"file":"08.m4a","dur":2.04},{"t":45.8,"file":"09.m4a","dur":1.5},{"t":47.3,"file":"10.m4a","dur":4.9},{"t":51.2,"file":"11.m4a","dur":5.5},{"t":53.4,"file":"12.m4a","dur":3.59},{"t":57.0,"file":"13.m4a","dur":5.11},{"t":62.4,"file":"14.m4a","dur":3.24},{"t":66.3,"file":"15.m4a","dur":3.91},{"t":69.4,"file":"16.m4a","dur":2.54},{"t":71.6,"file":"17.m4a","dur":1.21},{"t":75.2,"file":"18.m4a","dur":4.47},{"t":79.6,"file":"19.m4a","dur":4.06},{"t":84.0,"file":"20.m4a","dur":5.11},{"t":90.0,"file":"21.m4a","dur":6.18},{"t":95.0,"file":"22.m4a","dur":3.93},{"t":100.0,"file":"23.m4a","dur":4.59},{"t":104.0,"file":"24.m4a","dur":3.88},{"t":110.0,"file":"25.m4a","dur":5.02},{"t":116.0,"file":"26.m4a","dur":5.49}]};/*END NARRATION*/
+/*NARRATION*/const NARRATION = {"voice":"Samantha","clips":[{"t":6.0,"file":"01.m4a","dur":6.26},{"t":9.0,"file":"02.m4a","dur":4.55},{"t":17.5,"file":"03.m4a","dur":6.42},{"t":26.0,"file":"04.m4a","dur":3.83},{"t":31.0,"file":"05.m4a","dur":5.16},{"t":36.0,"file":"06.m4a","dur":3.79},{"t":40.0,"file":"07.m4a","dur":3.45},{"t":43.6,"file":"08.m4a","dur":2.04},{"t":45.8,"file":"09.m4a","dur":1.5},{"t":47.3,"file":"10.m4a","dur":4.9},{"t":51.2,"file":"11.m4a","dur":5.5},{"t":53.4,"file":"12.m4a","dur":3.59},{"t":57.0,"file":"13.m4a","dur":5.11},{"t":62.4,"file":"14.m4a","dur":3.24},{"t":66.3,"file":"15.m4a","dur":3.91},{"t":69.4,"file":"16.m4a","dur":2.54},{"t":71.6,"file":"17.m4a","dur":1.21},{"t":75.2,"file":"18.m4a","dur":4.47},{"t":79.6,"file":"19.m4a","dur":4.06},{"t":84.0,"file":"20.m4a","dur":5.11},{"t":90.0,"file":"21.m4a","dur":6.18},{"t":95.0,"file":"22.m4a","dur":3.93},{"t":100.0,"file":"23.m4a","dur":4.59},{"t":104.0,"file":"24.m4a","dur":3.88},{"t":110.0,"file":"25.m4a","dur":5.02},{"t":116.0,"file":"26.m4a","dur":5.49}]};/*END NARRATION*/
 const HOLDS = [];
 NARRATION.clips.forEach(c=>{
   const i = CAPTIONS.findIndex(x=>x[0]===c.t); if(i<0) return;
@@ -633,7 +629,7 @@ function render(){
   const sc = sOf(T);
   const s = stateAt(sc), v = s.loaded ? V(sc) : 0, b = s.bees.find(x=>x.id===s.cur);
   renderDom(s, sc, v);
-  if(s.loaded) drawBee(v, T, sc>=47.3 && sc<57); else { vctx.setTransform(2,0,0,2,0,0); vctx.fillStyle = '#0b0e11'; vctx.fillRect(0,0,778,340); }
+  if(s.loaded) drawBee(v, T, sc>=47.3 && sc<57); else { vctx.setTransform(2,0,0,2,0,0); vctx.fillStyle = '#0b0e11'; vctx.fillRect(0,0,778,312); }
   drawTL(b, v, s.loaded);
   drawOverlays(s, sc);
   // player chrome

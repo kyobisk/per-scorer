@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scoring PER with PER Scorer: A Student Tutorial</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+@page{size:Letter;margin:0.7in 0.75in 0.75in}
+@page:first{margin:0}
+:root{--ink:#18212a;--muted:#5d6b78;--line:#d9e0e5;--soft:#eef2f4;--accent:#b06e00;--accent-soft:#fbefd9;--good:#1f7a4d;--good-soft:#dcf1e5;--bad:#b3362c;--bad-soft:#f8e1de}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:10pt;line-height:1.45;color:var(--ink)}
+h1,h2,h3{font-family:"IBM Plex Serif",Georgia,serif;font-weight:600;line-height:1.2;margin:0}
+h2{font-size:19pt;margin:0 0 10pt;break-after:avoid}
+h3{font-size:12.5pt;margin:16pt 0 5pt;break-after:avoid}
+p{margin:0 0 8pt}
+ul,ol{margin:0 0 8pt;padding-left:18pt}
+li{margin-bottom:3pt}
+.mono,code,kbd{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+kbd{font-size:8.5pt;font-weight:600;background:var(--soft);border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 4pt;white-space:nowrap}
+code{font-size:9pt;background:var(--soft);padding:0 3pt;border-radius:2px}
+.eyebrow{font-size:8pt;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4pt}
+section{break-before:page}
+section.flow{break-before:auto;margin-top:14pt}
+figure{margin:8pt 0 12pt;break-inside:avoid}
+figure img{width:100%;display:block;border:1px solid var(--line);border-radius:5px}
+figcaption{font-size:8.5pt;color:var(--muted);margin-top:4pt}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16pt;align-items:start}
+.pair{display:grid;grid-template-columns:2.6in 2.6in;gap:16pt;justify-content:center;align-items:start}
+.side.narrow{grid-template-columns:2in 1fr}
+.step{margin-top:9pt!important}
+.side{display:grid;grid-template-columns:2.3in 1fr;gap:16pt;align-items:start}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:7pt 10pt;margin:8pt 0 10pt;break-inside:avoid;border-radius:0 4px 4px 0}
+.note b:first-child{color:var(--accent)}
+.warn{border-left-color:var(--bad);background:var(--bad-soft)}
+.warn b:first-child{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:9.5pt;margin:4pt 0 10pt;break-inside:auto}
+th,td{text-align:left;vertical-align:top;padding:4pt 6pt;border-bottom:1px solid var(--line)}
+th{font-size:7.5pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--soft)}
+tr{break-inside:avoid}
+.step{display:grid;grid-template-columns:24pt 1fr;gap:8pt;margin:12pt 0 6pt;break-after:avoid}
+.step .n{width:22pt;height:22pt;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:grid;place-items:center;font-size:10pt}
+.step h3{margin:2pt 0 0}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:8pt;font-weight:600;padding:0 5pt;border-radius:8pt}
+.yes{background:var(--good-soft);color:var(--good)} .no{background:var(--bad-soft);color:var(--bad)}
+.dot{display:inline-block;width:8pt;height:8pt;border-radius:2px;margin-right:4pt;vertical-align:-1pt}
+
+/* cover */
+.cover{height:11in;display:grid;grid-template-rows:auto 1fr auto;padding:0.9in 0.85in 0.7in;background:#fff;border-top:14pt solid var(--accent)}
+.cover .mark{display:flex;align-items:center;gap:10pt;font-weight:600;color:var(--muted);font-size:10pt}
+.cover h1{font-size:40pt;letter-spacing:-.01em;margin:1.3in 0 12pt;max-width:5.6in}
+.cover .lede{font-size:13pt;color:var(--muted);max-width:5in}
+.cover .box{display:grid;grid-template-columns:1fr 1fr;gap:20pt;align-self:end;margin-bottom:18pt}
+.cover .box h3{margin:0 0 5pt;font-size:11pt}
+.cover .box ul{font-size:10pt}
+.cover .foot{font-size:8.5pt;color:var(--muted);border-top:1px solid var(--line);padding-top:8pt}
+.toc{columns:2;column-gap:24pt;font-size:10pt;padding-left:16pt}
+
+/* timeline diagram */
+.diagram{border:1px solid var(--line);border-radius:5px;padding:10pt 12pt 6pt;margin:8pt 0 12pt;break-inside:avoid}
+.diagram svg{width:100%;height:auto;display:block}
+.qa li{margin-bottom:8pt}
+.answers{font-size:9pt;color:var(--muted);border-top:1px dashed var(--line);padding-top:6pt;margin-top:10pt}
+.card{border:1.5px solid var(--ink);border-radius:8px;padding:14pt 16pt}
+.card table td:first-child{width:1.3in}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="mark">
+    <svg width="26" height="26" viewBox="0 0 34 34"><rect x="1" y="1" width="32" height="32" rx="7" fill="#b06e00"/><path d="M11 9h12v6a6 6 0 0 1-12 0z" fill="#fff"/><path d="M17 21v8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+    PER Scorer · Student tutorial
+  </div>
+  <div>
+    <h1>Scoring the proboscis extension response</h1>
+    <p class="lede">A step-by-step guide to labeling honey bee behavior from video, one harnessed bee at a time, and turning those labels into PER data you can analyze.</p>
+  </div>
+  <div>
+    <div class="box">
+      <div>
+        <h3>You will learn to</h3>
+        <ul>
+          <li>Recognize a full proboscis extension and the behaviors around it</li>
+          <li>Use slow motion and frame stepping to time each behavior</li>
+          <li>Label behavior bouts with start and stop key presses</li>
+          <li>Check your labels and fix mistakes</li>
+          <li>Read each bee's PER result and export your data</li>
+        </ul>
+      </div>
+      <div>
+        <h3>You will need</h3>
+        <ul>
+          <li>A laptop with Chrome, Edge, Firefox or Safari</li>
+          <li>PER Scorer, at <code>kyobisk.github.io/per-scorer</code></li>
+          <li>Videos of harnessed bees (MP4 works best)</li>
+          <li>Your lab's bee IDs, holder numbers and group list</li>
+          <li>About 45 minutes for your first run-through, after watching the 2-minute walkthrough on the same site</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="toc">
+      <li>What PER is and why we score it</li>
+      <li>The ethogram: what each behavior looks like</li>
+      <li>A tour of the screen</li>
+      <li>Scoring a bee, step by step</li>
+      <li>How a bee gets scored</li>
+      <li>Saving and exporting your data</li>
+      <li>Comparing groups and transitions</li>
+      <li>Good scoring practice and troubleshooting</li>
+      <li>Check your understanding</li>
+      <li>Quick reference card</li>
+    </ol>
+    <div class="foot">Screenshots show the two example bees that come preloaded in PER Scorer. Delete them before you score real data.</div>
+  </div>
+</div>
+
+<section>
+  <div class="eyebrow">Part 1</div>
+  <h2>What PER is and why we score it</h2>
+  <p>When a hungry honey bee's antennae touch sugar water, she reflexively extends her proboscis (the tongue-like mouthparts) to drink. This is the <b>proboscis extension response</b>, or PER. Because the response is easy to see in a bee held still in a small holder, it has become one of the standard ways to study learning, memory and sensory perception in insects.</p>
+  <p>In a PER experiment you present a stimulus to a harnessed bee, such as sucrose on the antennae or an odor she has learned to associate with food, and record whether and how quickly she extends her proboscis. You will score these responses from video, so that every call can be replayed, checked and timed to a single frame.</p>
+
+  <h3>Words you will see</h3>
+  <table>
+    <tr><th style="width:1.6in">Term</th><th>Meaning in this tutorial</th></tr>
+    <tr><td><b>Holder</b> (harness)</td><td>The small tube or mount that holds the bee still with her head free. Each holder has a number.</td></tr>
+    <tr><td><b>Trial</b></td><td>One recording of one bee. PER Scorer treats each bee's whole video as one trial.</td></tr>
+    <tr><td><b>Latency</b></td><td>Time from 0:00, the start of the video, to the start of the first full extension, in seconds.</td></tr>
+    <tr><td><b>Bout</b></td><td>One continuous episode of a behavior, with a start time and a stop time.</td></tr>
+    <tr><td><b>Ethogram</b></td><td>The fixed list of behaviors you score, each with a written definition.</td></tr>
+  </table>
+
+  <div class="note"><b>Why label by hand?</b> A yes/no PER score for each bee is the main result, but recording when each behavior starts and stops also gives you response latency, response duration, and what the bee was doing instead of responding (grooming, struggling). PER Scorer turns your key presses into all of these numbers at once.</div>
+</section>
+
+<section>
+  <div class="eyebrow">Part 2</div>
+  <h2>The ethogram: what each behavior looks like</h2>
+  <p>Every scorer in the lab has to use the same definitions, or your data cannot be combined. Read these before you watch any video, and keep this page next to you for your first few bees. Your instructor may adjust the definitions for your project; their version always wins.</p>
+  <table>
+    <tr><th style="width:0.35in">Key</th><th style="width:1.45in">Behavior</th><th style="width:0.75in">Type</th><th>Start when… / Stop when…</th></tr>
+    <tr><td><kbd>P</kbd></td><td><span class="dot" style="background:#e0732a"></span>Full proboscis extension</td><td>Bout</td><td>Start on the first frame the proboscis extends past an imaginary line between the tips of the open mandibles. Stop when it retracts back behind that line.</td></tr>
+    <tr><td><kbd>E</kbd></td><td><span class="dot" style="background:#d9a21b"></span>Partial extension</td><td>Bout</td><td>The proboscis moves or unfolds but does not cross the mandible line. Start at first movement, stop when it is folded away again.</td></tr>
+    <tr><td><kbd>A</kbd></td><td><span class="dot" style="background:#2f6fd6"></span>Antennal movement</td><td>Bout</td><td>Both antennae point toward the stimulus or sweep back and forth rapidly. Stop when they return to a resting position.</td></tr>
+    <tr><td><kbd>M</kbd></td><td><span class="dot" style="background:#1f9d6a"></span>Mandible opening</td><td>Bout</td><td>The mandibles open with no proboscis extension. Stop when they close.</td></tr>
+    <tr><td><kbd>G</kbd></td><td><span class="dot" style="background:#8b5cf6"></span>Grooming</td><td>Bout</td><td>The bee wipes her antennae or head with her forelegs (only possible if her legs are free in your holder). Stop when the wiping stops for more than one second.</td></tr>
+    <tr><td><kbd>S</kbd></td><td><span class="dot" style="background:#dc2626"></span>Struggling</td><td>Bout</td><td>Vigorous attempts to escape: strong body, leg or abdomen movements against the holder. Stop when the bee is still again.</td></tr>
+    <tr><td><kbd>X</kbd></td><td><span class="dot" style="background:#d23f8f"></span>Sting extension</td><td>Bout</td><td>The sting shaft is visibly pushed out of the abdomen tip. Stop when it is withdrawn.</td></tr>
+    <tr><td><kbd>D</kbd></td><td><span class="dot" style="background:#64748b"></span>Defecation</td><td>Point</td><td>One key press at the moment a droplet appears. Point events have no duration.</td></tr>
+  </table>
+  <div class="note"><b>Full versus partial.</b> This is the call scorers disagree on most. If you have to replay a moment three times to decide, slow it to 0.25× and step frame by frame with <kbd>,</kbd> and <kbd>.</kbd>. If it still is not clear, it does not cross the line: score it as partial and add a note in your lab notebook.</div>
+  <p>Behaviors can overlap. A bee can extend her proboscis and move her antennae at the same time; just start both. Each behavior has its own key and its own row on the timeline.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Part 3</div>
+  <h2>A tour of the screen</h2>
+  <p>PER Scorer runs in a web browser. Nothing is installed and nothing is sent anywhere; your labels stay on your computer until you export them. The screen has a work area on the left and information panels on the right.</p>
+  <figure><img src="img/video.png" alt="Video area and playback controls"><figcaption><b>Video area and playback controls.</b> Above the video: <i>Open video file…</i>, or a box for pasting a link to a video file. The badge in the top-left corner always names the bee you are scoring. Below the video: play, jump back or forward 1 or 5 seconds, step one frame, playback speed, frame rate, and the current time. With no video loaded, <kbd>Space</kbd> runs a stopwatch for live scoring.</figcaption></figure>
+  <figure><img src="img/timeline.png" alt="Ethogram timeline"><figcaption><b>Ethogram timeline.</b> One row per behavior. Bars are bouts, diamonds are point events, and the amber line is the playhead (the current time). Click anywhere on the timeline to jump the video there.</figcaption></figure>
+</section>
+
+<section class="flow">
+  <figure><img src="img/keys.png" alt="Behavior keys"><figcaption><b>Behavior keys.</b> Each button shows its keyboard key. A button turns amber while its bout is running and shows the elapsed time. You can click the buttons instead of pressing keys. <i>Edit ethogram</i> lets you change any key or color (see Part 4).</figcaption></figure>
+  <figure><img src="img/log.png" alt="Event log"><figcaption><b>Event log.</b> Every bout you have labeled for the current bee, newest first. You can type in a start or stop time to correct it, jump to the event (↦), or delete it (✕). A bout that is still running is highlighted and has a <i>Stop now</i> button.</figcaption></figure>
+  <div class="pair">
+    <figure><img src="img/bees.png" alt="Bees panel"><figcaption><b>Bees.</b> Your roster. The green <span class="pill yes">+</span> and red <span class="pill no">−</span> marks show each bee's PER result; unlabeled bees say <i>not scored</i>. Add bees with the form. Below it you can edit the selected bee, including its recording length and any conditions your instructor asks you to fill in.</figcaption></figure>
+    <figure><img src="img/summary.png" alt="PER summary panel"><figcaption><b>PER summary.</b> For the selected bee: the PER result and latency, then the number of bouts (n) and total seconds (s) of each behavior over the whole recording.</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Part 4</div>
+  <h2>Scoring a bee, step by step</h2>
+
+  <div class="step"><div class="n">1</div><h3>Open PER Scorer and fill in the session details</h3></div>
+  <p>Open PER Scorer at <code>kyobisk.github.io/per-scorer</code>. At the top right, type your initials, check the date, and name the experiment (for example <i>Sucrose responsiveness, day 1</i>). These go into every row of your exported files.</p>
+  <p>If the two example bees are still there, select each one and click <i>Delete bee</i>, then <i>Yes</i>.</p>
+
+  <div class="step"><div class="n">2</div><h3>Add your bees</h3></div>
+  <p>In the <b>Bees</b> panel, type the bee's ID, holder number and treatment group, then click <i>Add</i>. The new bee becomes the selected bee. If the holder number ends in a digit, the form fills in the next one for you (H1, then H2…), so adding a whole rack is quick.</p>
+  <div class="note"><b>Group labels and blinding.</b> If your project is run blind, your instructor will give you coded group labels. Do not try to work out which group is which while scoring.</div>
+
+  <div class="step"><div class="n">3</div><h3>Load the video, or set up for live scoring</h3></div>
+  <p><b>From video (recommended):</b> click <i>Open video file…</i>, drag the file onto the black area, or paste a link to the video into the box next to the button and click <i>Load link</i>. A link has to point straight at a video file (usually ending in .mp4); YouTube links and Google Drive or Dropbox sharing links open a web page instead, so download those videos and open them as files. Set the <b>fps</b> box to the camera's frame rate (ask your instructor; 30 and 60 are common) so the frame-step buttons move exactly one frame.</p>
+  <p><b>Live, at the bench:</b> skip the video. Press <kbd>Space</kbd> to start the stopwatch at the moment you begin, and score in real time. Live scoring is harder because you cannot rewind, so use it only if your instructor asks you to.</p>
+  <p>The scorer reads each bee's <b>recording length</b> from the video. You can see and correct it in the <i>Length (s)</i> box under the bee list; it is what proportions of time are calculated from.</p>
+  <p>If several holders appear in the same video, score it once per bee: select a bee, score the whole video for that bee, then select the next bee and start again from 0:00.</p>
+
+  <div class="note"><b>Changing a key.</b> If a key is awkward for you, open <i>Edit ethogram</i> under the keys, click the key's box and type a new letter or digit. A key that is already taken is refused, and <kbd>Z</kbd>, <kbd>N</kbd> and <kbd>B</kbd> are reserved. Behavior names stay fixed so everyone's data lines up. If your instructor gives you an ethogram file, load it with <i>Import ethogram…</i>; <i>Reset to defaults</i> puts the standard keys back.</div>
+
+  <div class="step"><div class="n">4</div><h3>Label the bee's behavior</h3></div>
+  <p>Make sure the video is at 0:00 (click the left end of the timeline) and press <kbd>Space</kbd> to play. Press a behavior's key once when it starts and once more when it stops. Watch the head and mouthparts closely, especially in the seconds after the stimulus is presented. If a lot happens at once, watch the clip through once first, then score it on a second pass.</p>
+  <ul>
+    <li><b>Slow down</b> for the seconds around the stimulus: choose 0.5× or 0.25× in <i>Speed</i>, or press <kbd>[</kbd>.</li>
+    <li><b>Pause</b> with <kbd>Space</kbd> and step frame by frame with <kbd>,</kbd> and <kbd>.</kbd> to find the exact first frame of an extension. Then press the key while paused; the time is taken from the paused frame.</li>
+    <li><b>Mistake?</b> Press <kbd>Z</kbd> to undo the last change. You can undo many steps in a row.</li>
+    <li><b>Zoom</b> the timeline with <i>View</i> (8, 20 or 60 seconds around the playhead) when bouts are short.</li>
+  </ul>
+
+  <div class="step"><div class="n">5</div><h3>Check your labels in the event log</h3></div>
+  <p>Before moving on, read through the event log. Look for bouts still marked <i>open</i> (you forgot the stop press), and very short bouts from accidental key presses. Click ↦ to jump to any event and check it against the video. Fix times by typing new values.</p>
+
+  <div class="step"><div class="n">6</div><h3>Read the result and move to the next bee</h3></div>
+  <p>The <b>PER summary</b> panel now shows PER 1 or PER 0 for the bee, with its latency. If a result looks surprising, go back and look at the video again before you change anything. Press <kbd>N</kbd> to select the next bee (or <kbd>B</kbd> to go back), and repeat steps 3 to 6.</p>
+</section>
+
+<section class="flow" style="margin-top:22pt">
+  <div class="eyebrow">Part 5</div>
+  <h2>How a bee gets scored</h2>
+  <p>You never type PER 1 or PER 0 yourself. PER Scorer works it out from your labels with one rule:</p>
+  <div class="note"><b>The rule.</b> A bee scores <span class="pill yes">PER 1</span> if at least one <b>full proboscis extension</b> appears anywhere in her recording. Otherwise she scores <span class="pill no">PER 0</span>. <b>Latency</b> is the time from 0:00 to the start of her first full extension.</div>
+  <p>The diagram below shows the first 12 seconds of the two example bees that come preloaded in PER Scorer.</p>
+  <div class="diagram" style="padding:8pt 40pt 4pt">
+    <svg viewBox="0 0 640 236" font-family="IBM Plex Sans, sans-serif" font-size="11">
+      <g fill="#5d6b78" font-size="9.5" font-family="IBM Plex Mono, monospace">
+        <g text-anchor="middle"><text x="120" y="10">0 s</text><text x="215" y="10">3</text><text x="310" y="10">6</text><text x="405" y="10">9</text><text x="500" y="10">12</text></g>
+      </g>
+      <text x="0" y="30" font-weight="600" fill="#18212a">Example bee</text>
+      <text x="0" y="50" fill="#5d6b78">Antennal movement</text><rect x="158" y="41" width="114" height="11" rx="2" fill="#2f6fd6"/>
+      <text x="0" y="68" fill="#5d6b78">Mandible opening</text><rect x="313" y="59" width="25" height="11" rx="2" fill="#1f9d6a"/>
+      <text x="0" y="86" fill="#5d6b78">Full extension</text><rect x="319.5" y="77" width="155" height="11" rx="2" fill="#e0732a"/>
+      <line x1="120" y1="96" x2="319.5" y2="96" stroke="#18212a"/><line x1="319.5" y1="92" x2="319.5" y2="100" stroke="#18212a"/>
+      <text x="170" y="110" fill="#18212a">latency 6.30 s</text>
+      <text x="530" y="64" font-weight="600" fill="#1f7a4d">PER 1</text>
+      <text x="530" y="78" fill="#5d6b78" font-size="9.5">full extension</text><text x="530" y="90" fill="#5d6b78" font-size="9.5">at 6.30 s</text>
+
+      <text x="0" y="146" font-weight="600" fill="#18212a">Example bee 2</text>
+      <text x="0" y="166" fill="#5d6b78">Struggling</text><rect x="186.5" y="157" width="73" height="11" rx="2" fill="#dc2626"/>
+      <text x="0" y="184" fill="#5d6b78">Antennal movement</text><rect x="234" y="175" width="92" height="11" rx="2" fill="#2f6fd6"/>
+      <text x="0" y="202" fill="#5d6b78">Mandible opening</text><rect x="304" y="193" width="16" height="11" rx="2" fill="#1f9d6a"/>
+      <text x="0" y="220" fill="#5d6b78">Full extension</text><line x1="120" y1="215" x2="500" y2="215" stroke="#d6dde2" stroke-dasharray="3 3"/>
+      <text x="530" y="182" font-weight="600" fill="#b3362c">PER 0</text>
+      <text x="530" y="196" fill="#5d6b78" font-size="9.5">mandibles opened,</text><text x="530" y="208" fill="#5d6b78" font-size="9.5">no extension</text>
+      <line x1="120" y1="14" x2="120" y2="226" stroke="#18212a" stroke-width="0.8"/>
+    </svg>
+  </div>
+  <p>Example bee 2 moved her antennae and briefly opened her mandibles, but her proboscis never crossed the mandible line, so she scores PER 0. Those other behaviors are still recorded, and they show up in the summary and the exported files.</p>
+  <div class="note"><b>Where is 0:00?</b> Because latency is measured from the start of the video, every video must start at the same moment relative to the stimulus, for example exactly when the sucrose touches the antenna. Your instructor will tell you how your lab's videos are trimmed. If a video starts at a different point, tell your instructor before scoring it.</div>
+
+  <h3>Other things the summary reports</h3>
+  <ul>
+    <li><b>Latency</b>: seconds from 0:00 to the start of the first full extension. Blank when PER is 0.</li>
+    <li><b>n and s per behavior</b>: how many bouts started, and how many seconds were spent in each behavior, over the whole recording.</li>
+  </ul>
+  <h3>Scoring rules panel</h3>
+  <div class="side narrow"><figure style="margin-top:0"><img src="img/rules.png" alt="Scoring rules panel"></figure>
+  <p>Your instructor sets which behaviors count as a PER (for example, whether partial extensions count too). For experiments with several trials in one video, they can also choose a behavior that marks the start of each trial. <b>Do not change these on your own.</b> If two students use different rules, their results cannot be compared.</p></div>
+</section>
+
+<section class="flow" style="margin-top:22pt">
+  <div class="eyebrow">Part 6</div>
+  <h2>Saving and exporting your data</h2>
+  <div class="side">
+    <figure style="margin-top:0"><img src="img/data.png" alt="Data panel"></figure>
+    <div>
+      <p>PER Scorer keeps your work in the browser between visits, but browser storage can be wiped by clearing history, using a private window, or switching computers. <b>Save a project file at the end of every session</b>, and keep it in your lab's shared folder.</p>
+      <ul>
+        <li><b>Save project (.json)</b>: everything, including bees, labels and settings. Use <i>Open project…</i> to pick up where you left off, on any computer.</li>
+        <li><b>Events CSV</b>: one row per bout (bee, behavior, start, stop, duration, video file), for detailed analysis.</li>
+        <li><b>Trial summary CSV</b>: one row per bee, ready for a spreadsheet, R or Python.</li>
+        <li><b>Time budget CSV</b> and <b>Transitions CSV</b> (in the Analysis panel): per-bee time in each behavior, and transition counts, ready for R or Python.</li>
+        <li><b>Copy summary</b>: copies the trial summary so you can paste it straight into a spreadsheet, if saving files is blocked on your computer.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>The all-bees table</h3>
+  <figure><img src="img/allbees.png" alt="All bees table"><figcaption>At the bottom of the page: every bee's result and latency, and the percentage of bees that responded.</figcaption></figure>
+  <h3>What is in the trial summary file</h3>
+  <table>
+    <tr><th style="width:1.7in">Column</th><th>Meaning</th></tr>
+    <tr><td><code>bee_id</code>, <code>holder</code>, <code>group</code></td><td>From the Bees panel.</td></tr>
+    <tr><td><code>trial</code></td><td><i>all</i>, meaning the whole recording.</td></tr>
+    <tr><td><code>trial_onset_s</code></td><td>Blank unless your instructor sets a trial-onset behavior.</td></tr>
+    <tr><td><code>per</code></td><td>1 = responded, 0 = did not.</td></tr>
+    <tr><td><code>latency_s</code></td><td>Seconds from 0:00 to the first full extension (blank when <code>per</code> is 0).</td></tr>
+    <tr><td><code>pre_extended</code></td><td>Only used when a trial-onset behavior is set; otherwise 0.</td></tr>
+    <tr><td><code>response_window_s</code>, <code>summary_window_s</code></td><td>Settings used for trial-onset scoring; not used for whole-recording scoring.</td></tr>
+    <tr><td><code>&lt;behavior&gt;_count</code>, <code>&lt;behavior&gt;_dur_s</code></td><td>Bouts started and seconds spent in each behavior.</td></tr>
+  </table>
+</section>
+
+<section>
+  <div class="eyebrow">Part 7</div>
+  <h2>Comparing groups and transitions</h2>
+  <p>The <b>Analysis</b> panel at the bottom of the page compares bees across conditions. It updates as you label, and uses every bee that has at least one label.</p>
+  <figure><img src="img/analysis.png" alt="Analysis panel"><figcaption><b>Analysis.</b> Left: the time budget, one bar per group for each behavior (mean, with a line for ± SEM and a dot for each bee), and a table of the same numbers. Right: PER by condition, and the transition matrix. Hover over a bar or cell for its exact value.</figcaption></figure>
+  <h3>Conditions</h3>
+  <p>Every bee already has a <b>Group</b>. To compare bees by something else, click <i>+ Add condition</i> under the bee list (for example <i>Colony</i> or <i>Day</i>) and fill it in for each bee. Choose what to compare with <i>Compare by</i>.</p>
+  <h3>Time budget</h3>
+  <p>The default measure is <b>proportion of recording</b>: the time a bee spent in a behavior divided by the length of her recording. That keeps bees with longer or shorter videos comparable. You can switch to total seconds, number of bouts, or mean bout length. Point behaviors such as defecation only appear under number of bouts.</p>
+  <h3>Transitions</h3>
+  <p>Each bee's bouts are put in order of start time, and each bout followed by the next counts as one transition. A cell in the matrix is the chance that the row behavior is followed by the column behavior. For example, 67% in the <i>Antennal movement</i> row under <i>M</i> means two of every three antennal bouts were followed by mandible opening. Tick <i>Idle gaps</i> to count pauses longer than a set time as their own state.</p>
+  <div class="note"><b>About the p-values.</b> The panel shows a quick test for each comparison (Mann–Whitney or Kruskal–Wallis for time budgets, Fisher's exact or chi-square for PER). They are exploratory: they treat bees as independent and are not corrected for testing many behaviors at once. Use the exported CSVs for your real analysis.</div>
+</section>
+
+<section class="flow" style="margin-top:22pt">
+  <div class="eyebrow">Part 8</div>
+  <h2>Good scoring practice</h2>
+  <ul>
+    <li><b>Score from the definitions, not from memory.</b> Reread Part 2 at the start of every session.</li>
+    <li><b>Do two passes when it helps.</b> Watch a busy clip once at normal speed, then score it. It is much easier than trying to catch everything at once.</li>
+    <li><b>Score blind when you can.</b> Knowing a bee's treatment can nudge borderline calls, even without meaning to.</li>
+    <li><b>Check the sucrose response.</b> A bee that does not extend when sugar touches her antennae is not motivated (or not healthy), and her zeros say nothing about the stimulus you are testing. Note these bees; your lab will decide whether to exclude them.</li>
+    <li><b>Never edit a result to match what you expected.</b> Only change a label after looking at the video again.</li>
+    <li><b>Check agreement.</b> Your instructor may have two people score the same videos and compare results. Disagreement on more than the occasional trial means the definitions need discussing, not that one person is wrong.</li>
+    <li><b>Take breaks.</b> Attention drops after about 30 minutes of close video work, and missed short bouts are the first sign.</li>
+    <li><b>Keep a notebook.</b> Write down anything odd: a bee that escaped, a blurry stretch of video, a stimulus that was delivered late.</li>
+  </ul>
+
+  <h3>Troubleshooting</h3>
+  <table>
+    <tr><th style="width:2.2in">Problem</th><th>What to do</th></tr>
+    <tr><td>The video will not play</td><td>The browser cannot read that format. Ask your instructor for an MP4 (H.264) copy, or convert it with a free tool such as HandBrake.</td></tr>
+    <tr><td>A video link will not load</td><td>The link has to point straight at a video file. YouTube links and Drive or Dropbox sharing links open a web page; download the video and use <i>Open video file…</i>.</td></tr>
+    <tr><td>I pressed a key and nothing happened</td><td>The cursor is probably in a text box. Click on an empty part of the page, then try again.</td></tr>
+    <tr><td>I forgot to press stop</td><td>Find the open bout in the event log and type the correct stop time, or jump to the right moment and click <i>Stop now</i>.</td></tr>
+    <tr><td>I labeled the wrong bee</td><td>Press <kbd>Z</kbd> repeatedly to undo, or delete the events in the log, then select the right bee and score again.</td></tr>
+    <tr><td>My bees disappeared</td><td>The browser storage was cleared. Use <i>Open project…</i> with your last saved .json file. This is why you save at the end of every session.</td></tr>
+    <tr><td>The export button does nothing</td><td>Some computers block downloads from the page. Use <i>Copy summary</i> and paste into a spreadsheet, or ask for the <code>per-scorer.html</code> file and open it directly.</td></tr>
+  </table>
+</section>
+
+<section class="flow" style="margin-top:22pt">
+  <div class="eyebrow">Part 9</div>
+  <h2>Check your understanding</h2>
+  <p>Answer these before you score real data. Assume the default settings: the whole recording is one trial, and only full extensions count as a PER.</p>
+  <ol class="qa">
+    <li>A bee's proboscis first crosses the mandible line at 13.8 s. What are her PER score and latency?</li>
+    <li>The proboscis unfolds at 7.1 s, but never passes the tips of the mandibles. Which key do you use, and what is the bee's PER score if nothing else happens?</li>
+    <li>You finish a bee and the event log shows one Grooming bout as <i>open</i>. What happened, and how do you fix it?</li>
+    <li>A bee fully extends from 4.2 to 5.0 s and again from 9.0 to 12.5 s. What are her PER, latency, and the n and s for Full proboscis extension?</li>
+    <li>You scored 20 bees yesterday on a lab computer. Today the Bees panel is empty. What do you do?</li>
+    <li>Why does it matter that every video starts at the same moment relative to the stimulus?</li>
+  </ol>
+  <div class="answers">
+    <b>Answers.</b>
+    1. PER 1, latency 13.80 s.
+    2. <kbd>E</kbd>, partial extension. PER 0, because partial extensions do not count by default.
+    3. You never pressed stop. Type the stop time in the log, or jump to the right moment and use <i>Stop now</i>.
+    4. PER 1, latency 4.20 s, n = 2, s = 4.30 (0.8 + 3.5).
+    5. Open your saved project file with <i>Open project…</i>. If you did not save one, the labels are gone and the videos need to be rescored.
+    6. Latency is measured from 0:00. If videos start at different points, latencies from different bees cannot be compared.
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Part 10</div>
+  <h2>Quick reference card</h2>
+  <p>Print this page and keep it next to your keyboard.</p>
+  <div class="card">
+    <div class="two">
+      <div>
+        <h3 style="margin-top:0">Playback</h3>
+        <table>
+          <tr><td><kbd>Space</kbd></td><td>Play / pause (or start / stop the stopwatch)</td></tr>
+          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Back / forward 1 s</td></tr>
+          <tr><td><kbd>Shift</kbd> + <kbd>←</kbd> <kbd>→</kbd></td><td>Back / forward 5 s</td></tr>
+          <tr><td><kbd>,</kbd> <kbd>.</kbd></td><td>One frame back / forward</td></tr>
+          <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Slower / faster</td></tr>
+          <tr><td>Click timeline</td><td>Jump to that time</td></tr>
+        </table>
+        <h3>Editing and bees</h3>
+        <table>
+          <tr><td><kbd>Z</kbd></td><td>Undo last change</td></tr>
+          <tr><td><kbd>N</kbd> / <kbd>B</kbd></td><td>Next / previous bee</td></tr>
+          <tr><td>Event log</td><td>Type new times, ↦ jump, ✕ delete</td></tr>
+          <tr><td>Edit ethogram</td><td>Change a key or color</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Labels: press to start, press again to stop</h3>
+        <table>
+          <tr><td><kbd>P</kbd></td><td>Full proboscis extension</td></tr>
+          <tr><td><kbd>E</kbd></td><td>Partial extension</td></tr>
+          <tr><td><kbd>A</kbd></td><td>Antennal movement</td></tr>
+          <tr><td><kbd>M</kbd></td><td>Mandible opening</td></tr>
+          <tr><td><kbd>G</kbd></td><td>Grooming</td></tr>
+          <tr><td><kbd>S</kbd></td><td>Struggling</td></tr>
+          <tr><td><kbd>X</kbd></td><td>Sting extension</td></tr>
+          <tr><td><kbd>D</kbd></td><td>Defecation (one press)</td></tr>
+        </table>
+      </div>
+    </div>
+    <h3>Every bee</h3>
+    <ol style="columns:2;column-gap:20pt;margin-bottom:4pt">
+      <li>Select the bee (check the badge on the video)</li>
+      <li>Go to 0:00</li>
+      <li>Press <kbd>Space</kbd> to play</li>
+      <li>Label behaviors, slowing down near the stimulus</li>
+      <li>Check the event log for open or accidental bouts</li>
+      <li>Look at the PER summary, then press <kbd>N</kbd></li>
+    </ol>
+    <p style="margin:6pt 0 0"><b>Every session:</b> fill in initials, date and experiment first. Save project (.json) before you close the browser.</p>
+  </div>
+</section>
+
+</body>
+</html>

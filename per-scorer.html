@@ -12,16 +12,20 @@
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
   --r:8px;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12171c; --panel:#1a2128; --ink:#e4e9ed; --muted:#93a1ad; --line:#2c3640; --soft:#222b33;
   --accent:#f0a92e; --accent-ink:#1a1206; --accent-soft:#3a2c12;
-  --good:#5fd39a; --good-soft:#163527; --bad:#ff8a7e; --bad-soft:#3d1d1a; --warn:#f0c060; color-scheme:dark}}
+  --good:#5fd39a; --good-soft:#163527; --bad:#ff8a7e; --bad-soft:#3d1d1a; --warn:#f0c060; color-scheme:dark;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767}}
 :root[data-theme="dark"]{
   --bg:#12171c; --panel:#1a2128; --ink:#e4e9ed; --muted:#93a1ad; --line:#2c3640; --soft:#222b33;
   --accent:#f0a92e; --accent-ink:#1a1206; --accent-soft:#3a2c12;
-  --good:#5fd39a; --good-soft:#163527; --bad:#ff8a7e; --bad-soft:#3d1d1a; --warn:#f0c060; color-scheme:dark}
+  --good:#5fd39a; --good-soft:#163527; --bad:#ff8a7e; --bad-soft:#3d1d1a; --warn:#f0c060; color-scheme:dark;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
 h1,h2,h3{margin:0;text-wrap:balance}
@@ -56,10 +60,12 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-
 /* video stage */
 .stage{position:relative;background:#0b0e11;border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
 .stage video{width:100%;height:100%;object-fit:contain;display:block}
-.drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#c9d2da;text-align:center;padding:20px}
-.drop strong{font-size:16px;color:#fff}
-.drop .live{font-family:var(--mono);font-size:56px;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.drop.over{background:rgba(240,169,46,.18);outline:2px dashed #f0a92e;outline-offset:-10px}
+.stage.over{outline:2px dashed #f0a92e;outline-offset:-10px}
+.stage .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);color:#8d9aa5;font-size:12px;text-align:center;width:max-content;max-width:calc(100% - 24px)}
+.source{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.source form{display:flex;gap:6px;flex:1 1 280px;min-width:0}
+.source input{flex:1;min-width:0}
+.srcmsg{color:var(--bad);font-size:12px;margin:0}
 .stage .badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.6);color:#fff;font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:4px}
 .stage .active{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 20px)}
 .stage .active span{font-size:12px;font-weight:600;color:#fff;padding:3px 8px;border-radius:4px}
@@ -93,6 +99,9 @@ canvas#tl{display:block;width:100%;min-width:560px;cursor:crosshair;border-radiu
 .pill.ex{background:var(--accent-soft);color:var(--accent)}
 .addbee{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px}
 .addbee input{width:100%}
+.beeedit{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:6px 8px;align-items:center}
+.beeedit input{width:100%!important}
+.beeedit #delBeeWrap{grid-column:1/-1;justify-self:end}
 
 /* tables */
 .tbl-wrap{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:6px}
@@ -112,6 +121,33 @@ details[open]>summary::before{transform:rotate(90deg)}
 .etho-row{display:grid;grid-template-columns:28px 1fr 46px 82px 92px 28px;gap:6px;align-items:center}
 .etho-row input[type=color]{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:4px;background:none}
 .etho-row input.k{text-align:center;font-family:var(--mono);text-transform:uppercase}
+.etho-row input[readonly]{background:transparent;border-color:transparent;padding-left:0}
+.inline{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:13px}
+.conds{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:1px 4px 1px 9px;color:var(--ink)}
+.chip button{border:0;background:none;padding:0 4px;color:var(--muted)}
+/* analysis */
+.an-controls{gap:8px 10px}
+.an-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.an-grid{grid-template-columns:minmax(0,1fr)}}
+.an-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+.an-block h3{font-size:14px;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--sans);font-size:11px;fill:var(--muted)}
+.chart text.lbl{fill:var(--ink);font-size:12px}
+.matrix-wrap{overflow-x:auto}
+table.matrix{width:auto;border-collapse:separate;border-spacing:2px;font-size:12px}
+table.matrix th,table.matrix td{border:0;padding:0;white-space:nowrap}
+table.matrix th{position:static;background:none;font-size:11px;text-transform:none;letter-spacing:0;padding:2px 6px;color:var(--muted)}
+table.matrix th.rh{text-align:right;color:var(--ink);font-weight:400}
+table.matrix td.c{width:46px;height:30px;text-align:center;border-radius:3px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:11px}
+table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
+.tip{position:fixed;z-index:30;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.4;padding:6px 9px;border-radius:6px;white-space:pre-line;max-width:280px;opacity:0;transition:opacity .1s}
+.tip.show{opacity:1}
+.pv{font-family:var(--mono);font-size:12px}
+.pv.sig{color:var(--accent);font-weight:600}
 .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
 .settings .f{display:flex;flex-direction:column;gap:3px}
 .checks{display:flex;flex-wrap:wrap;gap:4px 12px}
@@ -142,14 +178,15 @@ details[open]>summary::before{transform:rotate(90deg)}
   <div class="grid">
     <div class="col">
       <section class="panel" aria-label="Video and timeline">
+        <div class="source">
+          <button class="primary" id="pickVid">Open video file…</button>
+          <form id="urlForm"><input id="vidUrl" type="url" placeholder="…or paste a link to a video file (.mp4, .webm)" aria-label="Link to a video file"><button type="submit">Load link</button></form>
+          <button class="ghost" id="bCloseVid" hidden>Close video</button>
+        </div>
+        <p class="srcmsg" id="srcMsg" hidden></p>
         <div class="stage" id="stage">
           <video id="vid" playsinline hidden></video>
-          <div class="drop" id="drop">
-            <div class="live" id="liveClock">00:00.00</div>
-            <strong>Live mode: scoring against a stopwatch</strong>
-            <span>Drop a video of the harnessed bee here to score from the recording, or press <span class="mono">Space</span> to start the stopwatch and score live.</span>
-            <div class="row" style="justify-content:center"><button class="primary" id="pickVid">Open video…</button></div>
-          </div>
+          <div class="hint" id="stageHint">No video loaded. Open a file or link above, or drop a video here. Press <span class="mono">Space</span> to score live with the stopwatch.</div>
           <div class="badge" id="beeBadge"></div>
           <div class="active" id="activeTags"></div>
         </div>
@@ -170,7 +207,6 @@ details[open]>summary::before{transform:rotate(90deg)}
           <span class="clock" id="clock">00:00.00</span>
           <span style="flex:1"></span>
           <button class="ghost" id="bResetClock" title="Reset the stopwatch to zero">Reset clock</button>
-          <button class="ghost" id="bCloseVid" hidden>Close video</button>
         </div>
         <div class="row spread">
           <h2>Ethogram timeline · <span id="tlBee"></span></h2>
@@ -188,9 +224,18 @@ details[open]>summary::before{transform:rotate(90deg)}
         <div class="keys" id="keys"></div>
         <details id="ethoDetails">
           <summary><h2 style="display:inline">Edit ethogram</h2></summary>
+          <p class="help" id="ethoNote" style="margin-top:8px"></p>
           <div class="etho" id="etho"></div>
-          <div class="row" style="margin-top:8px"><button id="addBeh">Add behavior</button><span class="help" id="ethoMsg"></span></div>
-          <p class="help">Type: <b>start/stop</b> logs a bout with duration; <b>point</b> logs a single instant. Role: <b>behavior</b> rows are what the bee did; mark a row <b>stimulus</b> only if you add something you presented, and it is left out of the behavior summary. Keys Z, N and B are reserved.</p>
+          <div class="row" style="margin-top:8px">
+            <button id="addBeh">Add behavior</button>
+            <button id="ethoExport">Export ethogram</button>
+            <button id="ethoImport">Import ethogram…</button>
+            <input type="file" id="ethoFile" accept=".json,application/json" hidden>
+            <span id="ethoResetWrap"><button class="ghost" id="ethoReset">Reset to defaults</button></span>
+          </div>
+          <p class="help" id="ethoMsg" aria-live="polite"></p>
+          <label class="inline" style="margin-top:6px"><input type="checkbox" id="ethoFull"> Allow renaming, adding and removing behaviors</label>
+          <p class="help" id="ethoFullHelp">Type: <b>start/stop</b> logs a bout with duration; <b>point</b> logs a single instant. Role: <b>behavior</b> rows are what the bee did; mark a row <b>stimulus</b> only if you add something you presented, and it is left out of the behavior summary and analysis. Keys Z, N and B are reserved.</p>
         </details>
       </section>
 
@@ -211,7 +256,8 @@ details[open]>summary::before{transform:rotate(90deg)}
           <input id="nb-group" placeholder="Group" aria-label="Treatment group">
           <button class="primary" type="submit">Add</button>
         </form>
-        <div class="row" id="beeEdit"></div>
+        <div class="beeedit" id="beeEdit"></div>
+        <div class="conds" id="condBar"></div>
       </section>
 
       <section class="panel" aria-label="Trial summary">
@@ -264,7 +310,41 @@ details[open]>summary::before{transform:rotate(90deg)}
     <div class="row spread"><h2>All bees · trial results</h2><span class="help" id="allStats"></span></div>
     <div class="tbl-wrap" style="max-height:420px"><table id="allTbl"></table></div>
   </section>
+
+  <section class="panel" aria-label="Analysis" id="analysis">
+    <div class="row spread"><h2>Analysis</h2><span class="help" id="anNote"></span></div>
+    <div class="row an-controls">
+      <label for="an-by">Compare by</label><select id="an-by"></select>
+      <label for="an-measure">Measure</label>
+      <select id="an-measure"><option value="prop">Proportion of recording</option><option value="total">Total time (s)</option><option value="bouts">Number of bouts</option><option value="mean">Mean bout length (s)</option></select>
+      <span style="flex:1"></span>
+      <button id="xBudget">Time budget CSV</button><button id="xTrans">Transitions CSV</button>
+    </div>
+    <div class="an-grid">
+      <div class="an-block">
+        <h3 id="an-title">Time budget</h3>
+        <div class="legend" id="an-legend"></div>
+        <div class="chart" id="an-chart"></div>
+        <div class="tbl-wrap"><table id="an-table"></table></div>
+      </div>
+      <div class="an-block">
+        <h3>PER by condition</h3>
+        <div class="tbl-wrap"><table id="an-per"></table></div>
+        <h3 style="margin-top:10px">Transitions between behaviors</h3>
+        <div class="row">
+          <label for="an-level">Bees</label><select id="an-level"></select>
+          <label class="inline"><input type="checkbox" id="an-idle"> Idle gaps over</label><input id="an-gap" type="number" min="0" step="0.5" style="width:64px" aria-label="Idle gap in seconds"><span class="help">s</span>
+          <label class="inline"><input type="checkbox" id="an-rep"> Count repeats</label>
+        </div>
+        <div class="matrix-wrap" id="an-matrix"></div>
+        <div id="an-top" class="help"></div>
+        <p class="help">Each bee's bouts are put in order of start time; each bout followed by the next is one transition. A cell is the chance that the row behavior is followed by the column behavior, pooled over the selected bees. <i>Idle</i> marks a gap with no behavior. <i>Count repeats</i> keeps a behavior followed by itself.</p>
+      </div>
+    </div>
+    <p class="help">p-values use the Mann–Whitney U test for two groups and the Kruskal–Wallis test for three or more (per behavior, bees as replicates), and Fisher's exact test (two groups) or a chi-square test for PER. They are exploratory and not corrected for multiple comparisons. Export the CSVs for formal analysis.</p>
+  </section>
 </div>
+<div class="tip" id="tip" role="tooltip"></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -291,13 +371,14 @@ function exampleState(){
   return {
     session:{experimenter:'',date:new Date().toISOString().slice(0,10),experiment:''},
     behaviors: DEFAULT_BEHAVIORS.map(b=>({...b})),
-    settings:{cs:'', resp:['pe'], rw:3, aw:10, fps:30},
+    settings:{cs:'', resp:['pe'], rw:3, aw:10, fps:30, ethoFull:false},
+    conds:[],
     bees:[
-      {id:uid(), label:'Example bee', holder:'H1', group:'Example', clock:24, example:true, events:[
+      {id:uid(), label:'Example bee', holder:'H1', group:'Sucrose 30%', cond:{}, recLen:25, clock:24, example:true, events:[
         ev('an',1.2,4.8), ev('an',5.4,8.6), ev('md',6.1,6.9), ev('pe',6.3,11.2),
         ev('gr',14,17.5), ev('pp',20.6,21.4), ev('an',19.3,22.9), ev('df',22.2,22.2)
       ]},
-      {id:uid(), label:'Example bee 2', holder:'H2', group:'Example', clock:12, example:true, events:[
+      {id:uid(), label:'Example bee 2', holder:'H2', group:'Water', cond:{}, recLen:12, clock:12, example:true, events:[
         ev('st',2.1,4.4), ev('an',3.6,6.5), ev('md',5.8,6.3)
       ]},
     ],
@@ -305,8 +386,15 @@ function exampleState(){
   };
 }
 
-let S = load() || exampleState();
-if(!S.current || !S.bees.find(b=>b.id===S.current)) S.current = S.bees[0]?.id || null;
+let S = migrate(load() || exampleState());
+function migrate(s){
+  s.conds = s.conds || [];
+  s.settings = Object.assign({cs:'', resp:['pe'], rw:3, aw:10, fps:30, ethoFull:false}, s.settings);
+  s.an = Object.assign({by:'group', measure:'prop', level:'', idle:false, gap:1, rep:false}, s.an);
+  s.bees.forEach(b=>{ b.cond = b.cond || {}; });
+  if(!s.current || !s.bees.find(b=>b.id===s.current)) s.current = s.bees[0]?.id || null;
+  return s;
+}
 const undo = [];
 
 function load(){ try{ const s = JSON.parse(localStorage.getItem(STORE)); return s && s.bees ? s : null; }catch(e){ return null; } }
@@ -355,6 +443,7 @@ function toggleBehavior(bid){
     else { b.events.push({id:uid(),bid,t0:t,t1:null}); toast(d.name+' started'); }
   }
   b.videoName = hasVideo ? videoName : (b.videoName||'');
+  if(hasVideo && !b.recLen && isFinite(vid.duration)) b.recLen = +vid.duration.toFixed(3);
   changed();
 }
 function doUndo(){
@@ -393,7 +482,7 @@ function trials(b){
 
 /* ---------- rendering ---------- */
 function changed(){ save(); renderAll(); }
-function renderAll(){ renderBees(); renderKeys(); renderLog(); renderSummary(); renderAll2(); renderSettings(); renderTransport(); drawTL(); }
+function renderAll(){ renderBees(); renderKeys(); renderLog(); renderSummary(); renderAll2(); renderSettings(); renderTransport(); drawTL(); renderAnalysis(); }
 
 function renderTransport(){
   $('bPlay').textContent = isPlaying() ? 'Pause' : (hasVideo ? 'Play' : 'Start');
@@ -401,10 +490,11 @@ function renderTransport(){
   $('beeBadge').textContent = name;
   ['tlBee','logBee','sumBee'].forEach(id=>$(id).textContent = b ? b.label : '—');
   $('bCloseVid').hidden = !hasVideo; $('bResetClock').hidden = hasVideo;
-  $('drop').hidden = hasVideo; vid.hidden = !hasVideo;
+  $('stageHint').hidden = hasVideo; vid.hidden = !hasVideo;
 }
 
 function renderBees(){
+  renderConds();
   const el = $('bees'); el.innerHTML='';
   if(!S.bees.length){ el.innerHTML='<div class="empty">No bees yet. Add the first bee below.</div>'; }
   S.bees.forEach(b=>{
@@ -414,14 +504,19 @@ function renderBees(){
     const pills = scored ? tr.map(t=>`<span class="pill ${t.per?'yes':'no'}" title="Trial ${t.i}">${t.per?'+':'−'}</span>`).join(' ') : `<span class="pill na">${S.settings.cs?'no onset':'not scored'}</span>`;
     btn.innerHTML = `<span class="id"></span><span class="row" style="gap:3px;grid-row:span 2">${b.example?'<span class="pill ex">example</span>':''}${pills}</span><span class="sub"></span>`;
     btn.querySelector('.id').textContent = b.label;
-    btn.querySelector('.sub').textContent = [b.holder&&('holder '+b.holder), b.group, b.events.length+' events'].filter(Boolean).join(' · ');
+    btn.querySelector('.sub').textContent = [b.holder&&('holder '+b.holder), b.group, ...S.conds.map(c=>b.cond[c]), b.events.length+' events'].filter(Boolean).join(' · ');
     btn.onclick = ()=>selectBee(b.id);
     el.appendChild(btn);
   });
   const b = bee(), be = $('beeEdit'); be.innerHTML='';
   if(b){
-    be.innerHTML = `<label for="eb-l">ID</label><input id="eb-l" style="width:90px"><label for="eb-h">Holder</label><input id="eb-h" style="width:60px"><label for="eb-g">Group</label><input id="eb-g" style="width:90px"><span id="delBeeWrap"><button class="ghost" id="delBee">Delete bee</button></span>`;
+    be.innerHTML = `<label for="eb-l">ID</label><input id="eb-l" style="width:90px"><label for="eb-h">Holder</label><input id="eb-h" style="width:60px"><label for="eb-g">Group</label><input id="eb-g" style="width:90px">`
+      + S.conds.map((c,i)=>`<label for="eb-c${i}"></label><input id="eb-c${i}" style="width:90px">`).join('')
+      + `<label for="eb-len" title="Recording length, used for proportions. Filled in from the video.">Length (s)</label><input id="eb-len" type="number" min="0" step="0.1" style="width:76px"><span id="delBeeWrap"><button class="ghost" id="delBee">Delete bee</button></span>`;
     $('eb-l').value=b.label; $('eb-h').value=b.holder||''; $('eb-g').value=b.group||'';
+    S.conds.forEach((c,i)=>{ const inp=$('eb-c'+i); inp.previousElementSibling.textContent=c; inp.value=b.cond[c]||''; inp.onchange=e=>{ b.cond[c]=e.target.value.trim(); changed(); }; });
+    $('eb-len').value = b.recLen || ''; $('eb-len').placeholder = 'from video';
+    $('eb-len').onchange=e=>{ const v=+e.target.value; b.recLen = v>0 ? v : null; changed(); };
     $('eb-l').onchange=e=>{b.label=e.target.value||b.label; changed();};
     $('eb-h').onchange=e=>{b.holder=e.target.value; changed();};
     $('eb-g').onchange=e=>{b.group=e.target.value; changed();};
@@ -429,6 +524,21 @@ function renderBees(){
       S.bees = S.bees.filter(x=>x!==b); S.current = S.bees[0]?.id||null; syncLiveFromBee(); changed();
     });
   }
+}
+function renderConds(){
+  const el = $('condBar'); if(el.contains(document.activeElement) && document.activeElement.id==='newCond') return;
+  el.innerHTML = '<span>Conditions:</span><span class="chip">Group</span>' + S.conds.map((c,i)=>`<span class="chip"><span></span><button title="Remove this condition" aria-label="Remove condition" data-i="${i}">✕</button></span>`).join('')
+    + '<span id="condAdd"><button class="ghost" id="condAddBtn">+ Add condition</button></span>';
+  el.querySelectorAll('.chip button').forEach(btn=>{ const c = S.conds[+btn.dataset.i]; btn.previousElementSibling.textContent = c;
+    btn.onclick = ()=>confirmInline(btn.parentElement, 'Remove '+esc(c)+' from every bee?', ()=>{ S.conds = S.conds.filter(x=>x!==c); S.bees.forEach(b=>delete b.cond[c]); if(S.an.by===c) S.an.by='group'; changed(); }); });
+  $('condAddBtn').onclick = ()=>{
+    $('condAdd').innerHTML = '<input id="newCond" placeholder="e.g. Colony" style="width:120px" aria-label="New condition name"> <button class="primary" id="newCondOk">Add</button>';
+    const inp = $('newCond'); inp.focus();
+    const ok = ()=>{ const v = inp.value.trim(); if(!v) { renderConds(); return; }
+      if(v.toLowerCase()==='group' || S.conds.some(c=>c.toLowerCase()===v.toLowerCase())){ toast(v+' already exists.'); return; }
+      S.conds.push(v); changed(); toast('Added condition '+v+'. Fill it in for each bee.'); };
+    $('newCondOk').onclick = ok; inp.onkeydown = e=>{ if(e.key==='Enter') ok(); if(e.key==='Escape') renderConds(); };
+  };
 }
 function confirmInline(host, msg, fn){
   const prev = host.innerHTML;
@@ -545,6 +655,12 @@ function renderSettings(){
   renderEtho();
 }
 function renderEtho(){
+  const full = !!S.settings.ethoFull;
+  $('ethoFull').checked = full;
+  $('addBeh').hidden = !full; $('ethoFullHelp').hidden = !full;
+  $('ethoNote').textContent = full
+    ? 'Full editing is on: names, types and roles can be changed, and behaviors added or removed.'
+    : 'Click a key to change it, or the swatch to change a color. Names stay fixed so everyone’s data lines up.';
   const el = $('etho'); if(el.contains(document.activeElement)) return;
   el.innerHTML='';
   S.behaviors.forEach(d=>{
@@ -552,13 +668,14 @@ function renderEtho(){
     row.innerHTML = `<input type="color" aria-label="Color"><input class="nm" aria-label="Name"><input class="k" maxlength="1" aria-label="Key"><select class="ty" aria-label="Type"><option value="state">start/stop</option><option value="point">point</option></select><select class="ro" aria-label="Role"><option value="behavior">behavior</option><option value="stimulus">stimulus</option></select><button class="ghost" title="Remove behavior" aria-label="Remove behavior">✕</button>`;
     const [col,nm,k,ty,ro,del] = row.querySelectorAll('input,select,button');
     col.value=d.color; nm.value=d.name; k.value=d.key||''; ty.value=d.type; ro.value=d.role;
+    if(!full){ nm.readOnly = true; nm.tabIndex = -1; ty.disabled = true; ro.disabled = true; del.hidden = true; }
     col.onchange=()=>{d.color=col.value;changed();};
     nm.onchange=()=>{d.name=nm.value||d.name;changed();};
     k.onchange=()=>{ const v=k.value.toLowerCase();
       if(v && !/^[a-z0-9]$/.test(v)){ msg('Keys must be a letter or digit.'); k.value=d.key; return; }
       if(RESERVED.has(v)){ msg(v.toUpperCase()+' is reserved.'); k.value=d.key; return; }
       const other = S.behaviors.find(x=>x!==d && x.key===v);
-      if(v && other){ msg(v.toUpperCase()+' is already used by '+other.name+'.'); k.value=d.key; return; }
+      if(v && other){ msg(v.toUpperCase()+' is already used by '+other.name.replace(/\.$/,'')+'.'); k.value=d.key; return; }
       d.key=v; msg(''); changed(); };
     ty.onchange=()=>{d.type=ty.value;changed();};
     ro.onchange=()=>{d.role=ro.value;changed();};
@@ -569,6 +686,201 @@ function renderEtho(){
   });
 }
 const msg = t => $('ethoMsg').textContent = t;
+
+$('ethoFull').onchange = e=>{ S.settings.ethoFull = e.target.checked; msg(''); changed(); };
+function keyClash(list){ const seen = new Set(); list.forEach(d=>{ if(d.key && (seen.has(d.key) || RESERVED.has(d.key))) d.key = ''; else if(d.key) seen.add(d.key); }); }
+$('ethoReset').onclick = ()=>confirmInline($('ethoResetWrap'), S.settings.ethoFull ? 'Restore the default behaviors, keys and colors?' : 'Restore the default keys and colors?', ()=>{
+  const full = !!S.settings.ethoFull, used = id => S.bees.some(b=>b.events.some(e=>e.bid===id));
+  const out = DEFAULT_BEHAVIORS.map(def=>{ const cur = S.behaviors.find(d=>d.id===def.id);
+    return !cur ? (full ? {...def} : null) : full ? {...def} : {...cur, key:def.key, color:def.color}; }).filter(Boolean);
+  S.behaviors.filter(d=>!DEFAULT_BEHAVIORS.some(x=>x.id===d.id)).forEach(d=>{ if(!full || used(d.id)) out.push({...d}); });
+  out.forEach((d,i)=>{ if(i>=DEFAULT_BEHAVIORS.length && out.slice(0,i).some(x=>x.key===d.key)) d.key=''; });
+  S.behaviors = out; S.settings.resp = S.settings.resp.filter(id=>out.some(d=>d.id===id));
+  msg(full ? 'Default behaviors restored.' : 'Default keys and colors restored.'); changed();
+});
+$('ethoExport').onclick = ()=>offerFile('per_ethogram.json', JSON.stringify({kind:'per-scorer-ethogram', version:1,
+  behaviors:S.behaviors.map(({id,name,key,type,role,color})=>({id,name,key,type,role,color})), countsAsPer:S.settings.resp, allowFullEditing:!!S.settings.ethoFull}, null, 1), 'application/json');
+$('ethoImport').onclick = ()=>$('ethoFile').click();
+$('ethoFile').onchange = e=>{
+  const file = e.target.files[0]; e.target.value=''; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    let data; try{ data = JSON.parse(r.result); }catch(err){ msg('That file is not valid JSON.'); return; }
+    if(data.kind!=='per-scorer-ethogram' || !Array.isArray(data.behaviors)){ msg(data.bees ? 'That is a project file. Use Open project… under Data instead.' : 'That file is not a PER Scorer ethogram.'); return; }
+    const clean = data.behaviors.filter(d=>d && d.id && d.name).map(d=>({id:String(d.id), name:String(d.name).slice(0,60), key:/^[a-z0-9]$/.test(String(d.key||'').toLowerCase()) ? String(d.key).toLowerCase() : '',
+      type:d.type==='point'?'point':'state', role:d.role==='stimulus'?'stimulus':'behavior', color:/^#[0-9a-f]{6}$/i.test(d.color||'') ? d.color : PALETTE[0]}));
+    if(!clean.length){ msg('That ethogram has no behaviors.'); return; }
+    const kept = S.behaviors.filter(d=>!clean.some(x=>x.id===d.id) && S.bees.some(b=>b.events.some(e=>e.bid===d.id)));
+    S.behaviors = [...clean, ...kept.map(d=>({...d}))]; keyClash(S.behaviors);
+    if(Array.isArray(data.countsAsPer)) S.settings.resp = data.countsAsPer.filter(id=>S.behaviors.some(d=>d.id===id));
+    if(typeof data.allowFullEditing==='boolean') S.settings.ethoFull = data.allowFullEditing;
+    msg(`Imported ${clean.length} behaviors from ${file.name}.` + (kept.length ? ` Kept ${kept.length} with logged events.` : '')); changed();
+  };
+  r.readAsText(file);
+};
+
+/* ---------- analysis ---------- */
+const MEASURES = {
+  prop:  {label:'Proportion of recording', fmt:v=>(v*100).toFixed(v<0.1?1:0)+'%', axis:v=>Math.round(v*100)+'%', state:true},
+  total: {label:'Total time (s)',          fmt:v=>v.toFixed(2)+' s', axis:v=>v+'', state:true},
+  bouts: {label:'Number of bouts',         fmt:v=>v.toFixed(v%1?1:0), axis:v=>v+'', state:false},
+  mean:  {label:'Mean bout length (s)',    fmt:v=>v.toFixed(2)+' s', axis:v=>v+'', state:true},
+};
+const condOf = (b, by) => by==='none' ? 'All bees' : by==='group' ? (b.group||'(no group)') : (b.cond[by]||'(not set)');
+function recLenOf(b){ return b.recLen || Math.max(0, ...b.events.map(e=>e.t1 ?? e.t0)); }
+function beeBudget(b){
+  const L = recLenOf(b), out = {};
+  S.behaviors.filter(d=>d.role==='behavior').forEach(d=>{
+    const es = b.events.filter(e=>e.bid===d.id);
+    const total = es.reduce((a,e)=>a + Math.max(0, (e.t1 ?? (b.recLen || e.t0)) - e.t0), 0);
+    out[d.id] = {bouts:es.length, total, prop: L>0 ? total/L : null, mean: es.length ? total/es.length : null};
+  });
+  return {L, est:!b.recLen, beh:out};
+}
+const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+const sd = a => a.length<2 ? 0 : Math.sqrt(a.reduce((x,y)=>x+(y-mean(a))**2,0)/(a.length-1));
+// stats helpers (normal / chi-square approximations)
+function erf(x){ const t=1/(1+0.3275911*Math.abs(x)); const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return x>=0?y:-y; }
+const normSf = z => 0.5*(1-erf(z/Math.SQRT2));
+function lgamma(x){ const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5]; let y=x, t=x+5.5; t-=(x+0.5)*Math.log(t); let s=1.000000000190015; c.forEach(v=>s+=v/++y); return -t+Math.log(2.5066282746310005*s/x); }
+function gammaP(a,x){ if(x<=0) return 0; if(x<a+1){ let ap=a, sum=1/a, del=sum; for(let n=0;n<200;n++){ ap++; del*=x/ap; sum+=del; if(Math.abs(del)<Math.abs(sum)*1e-12) break; } return sum*Math.exp(-x+a*Math.log(x)-lgamma(a)); }
+  let b=x+1-a, c=1e300, d=1/b, h=d; for(let i=1;i<200;i++){ const an=-i*(i-a); b+=2; d=an*d+b; if(Math.abs(d)<1e-300) d=1e-300; c=b+an/c; if(Math.abs(c)<1e-300) c=1e-300; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<1e-12) break; } return 1-Math.exp(-x+a*Math.log(x)-lgamma(a))*h; }
+const chi2Sf = (x, df) => 1 - gammaP(df/2, x/2);
+function ranks(all){ const idx = all.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]); const r = Array(all.length); let ties = 0;
+  for(let i=0;i<idx.length;){ let j=i; while(j+1<idx.length && idx[j+1][0]===idx[i][0]) j++; const avg=(i+j)/2+1; for(let k=i;k<=j;k++) r[idx[k][1]]=avg; const t=j-i+1; ties += t*t*t-t; i=j+1; } return {r, ties}; }
+function groupTest(groups){ // groups: arrays of numbers, each n>=2
+  const gs = groups.filter(g=>g.length); if(gs.length<2 || gs.some(g=>g.length<2)) return null;
+  const all = gs.flat(), N = all.length, {r, ties} = ranks(all);
+  if(gs.length===2){ const n1=gs[0].length, n2=gs[1].length, R1=r.slice(0,n1).reduce((a,b)=>a+b,0), U=R1-n1*(n1+1)/2, mu=n1*n2/2;
+    const sg = Math.sqrt(n1*n2/12*((N+1) - ties/(N*(N-1)))); if(!sg) return {name:'Mann–Whitney', p:1};
+    return {name:'Mann–Whitney', p: Math.min(1, 2*normSf(Math.max(0, Math.abs(U-mu)-0.5)/sg))}; }
+  let H=0, o=0; gs.forEach(g=>{ const R=r.slice(o,o+g.length).reduce((a,b)=>a+b,0); H+=R*R/g.length; o+=g.length; });
+  H = 12/(N*(N+1))*H - 3*(N+1); const C = 1 - ties/(N*N*N-N); if(C>0) H/=C;
+  return {name:'Kruskal–Wallis', p: chi2Sf(Math.max(0,H), gs.length-1)};
+}
+function lf(n){ return lgamma(n+1); }
+function fisher2x2(a,b,c,d){ const n=a+b+c+d, r1=a+b, c1=a+c, pr = x => Math.exp(lf(r1)+lf(n-r1)+lf(c1)+lf(n-c1)-lf(n)-lf(x)-lf(r1-x)-lf(c1-x)-lf(n-r1-c1+x));
+  const p0 = pr(a); let p=0; for(let x=Math.max(0,r1+c1-n); x<=Math.min(r1,c1); x++){ const q=pr(x); if(q<=p0*(1+1e-7)) p+=q; } return Math.min(1,p); }
+function perTest(rows){ // rows: [yes,no]
+  const rs = rows.filter(([y,n])=>y+n>0); if(rs.length<2) return null;
+  if(rs.length===2) return {name:'Fisher’s exact', p:fisher2x2(rs[0][0],rs[0][1],rs[1][0],rs[1][1])};
+  const Y=rs.reduce((a,r)=>a+r[0],0), T=rs.reduce((a,r)=>a+r[0]+r[1],0); if(!Y || Y===T) return {name:'Chi-square', p:1};
+  let X=0; rs.forEach(([y,n])=>{ const t=y+n, ey=t*Y/T, en=t-ey; X+=(y-ey)**2/ey+(n-en)**2/en; });
+  return {name:'Chi-square', p:chi2Sf(X, rs.length-1)};
+}
+const fmtP = t => !t ? '<span class="help">—</span>' : `<span class="pv${t.p<0.05?' sig':''}" data-tip="${t.name} test">${t.p<0.001?'p < 0.001':'p = '+t.p.toFixed(t.p<0.01?3:2)}</span>`;
+
+function levelsFor(by){ const lv=[]; S.bees.forEach(b=>{ const v=condOf(b,by); if(!lv.includes(v)) lv.push(v); }); return lv; }
+function transitions(bees){
+  const states = S.behaviors.filter(d=>d.role==='behavior').map(d=>d.id), counts = {};
+  bees.forEach(b=>{
+    const seq = []; let lastEnd = -Infinity;
+    [...b.events].filter(e=>states.includes(e.bid)).sort((x,y)=>x.t0-y.t0 || (x.t1??x.t0)-(y.t1??y.t0)).forEach(e=>{
+      if(S.an.idle && seq.length && e.t0 - lastEnd > (+S.an.gap||0)) seq.push('idle');
+      if(S.an.rep || seq[seq.length-1]!==e.bid) seq.push(e.bid);
+      lastEnd = Math.max(lastEnd, e.t1 ?? e.t0);
+    });
+    for(let i=1;i<seq.length;i++){ const k=seq[i-1]+'>'+seq[i]; counts[k]=(counts[k]||0)+1; }
+  });
+  const used = [...states.filter(id=>Object.keys(counts).some(k=>k.split('>').includes(id))), ...(Object.keys(counts).some(k=>k.includes('idle'))?['idle']:[])];
+  return {counts, used};
+}
+const stateName = id => id==='idle' ? 'Idle' : (beh(id)?.name || id);
+const stateKey = id => id==='idle' ? '·' : ((beh(id)?.key||'?').toUpperCase());
+
+function renderAnalysis(){
+  const by = S.an.by, M = MEASURES[S.an.measure] || MEASURES.prop;
+  $('an-by').innerHTML = ['<option value="none">Nothing (all bees together)</option>','<option value="group">Group</option>', ...S.conds.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`)].join('');
+  $('an-by').value = (by==='none' || by==='group' || S.conds.includes(by)) ? by : 'group';
+  $('an-measure').value = S.an.measure; $('an-title').textContent = 'Time budget · ' + M.label.toLowerCase();
+  $('an-idle').checked = S.an.idle; $('an-gap').value = S.an.gap; $('an-gap').disabled = !S.an.idle; $('an-rep').checked = S.an.rep;
+  const bees = S.bees.filter(b=>b.events.length);
+  if(!bees.length){ ['an-legend','an-chart','an-table','an-per','an-matrix','an-top'].forEach(id=>$(id).innerHTML=''); $('an-chart').innerHTML = '<div class="empty">Label at least one bee to see the analysis.</div>'; $('anNote').textContent=''; return; }
+  const levels = levelsFor($('an-by').value).filter(l=>bees.some(b=>condOf(b,$('an-by').value)===l)).slice(0,8);
+  const byLv = levels.map(l=>bees.filter(b=>condOf(b,$('an-by').value)===l));
+  const budgets = new Map(bees.map(b=>[b, beeBudget(b)]));
+  const est = bees.filter(b=>budgets.get(b).est).length, open = bees.reduce((a,b)=>a+b.events.filter(e=>e.t1==null).length,0);
+  $('anNote').textContent = [`${bees.length} labeled bee${bees.length===1?'':'s'}`, est && S.an.measure==='prop' ? `${est} without a recording length (using the last event instead)` : '', open ? `${open} open bout${open===1?'':'s'}` : ''].filter(Boolean).join(' · ');
+  const behs = S.behaviors.filter(d=>d.role==='behavior' && (!M.state || d.type==='state'));
+  const val = (b,d) => budgets.get(b).beh[d.id][S.an.measure];
+  const stats = behs.map(d=>({d, lv: byLv.map(g=>{ const v=g.map(b=>val(b,d)).filter(x=>x!=null); return {v, m:v.length?mean(v):0, se:v.length>1?sd(v)/Math.sqrt(v.length):0}; })}));
+  stats.forEach(s=>s.test = groupTest(s.lv.map(l=>l.v)));
+  // legend
+  $('an-legend').innerHTML = levels.map((l,i)=>`<span><i style="background:var(--s${i+1})"></i>${esc(l)} <span class="help">(${byLv[i].length})</span></span>`).join('');
+  // chart: horizontal grouped bars, mean ± SEM, one dot per bee
+  const W = Math.max(320, $('an-chart').clientWidth || 600), LBL = 150, R = 16, top = 6, bh = 9, gap = 2, pad = 9, axisH = 22;
+  const rowH = levels.length*(bh+gap) - gap + pad*2, H = top + behs.length*rowH + axisH;
+  let xmax = 0; stats.forEach(s=>s.lv.forEach(l=>{ xmax = Math.max(xmax, l.m+l.se, ...l.v); }));
+  if(S.an.measure==='prop') xmax = Math.min(1, xmax);
+  const step = (()=>{ const raw = (xmax||1)/5, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; })();
+  const xm = Math.ceil((xmax||step)/step)*step, X = v => LBL + v/xm*(W-LBL-R);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.label)} for each behavior by ${esc($('an-by').selectedOptions[0].text)}">`;
+  for(let t=0; t<=xm+1e-9; t+=step){ const x=X(t); svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${H-axisH}" stroke="var(--line)"/><text x="${x}" y="${H-6}" text-anchor="middle">${M.axis(+t.toFixed(6))}</text>`; }
+  stats.forEach((s,i)=>{
+    const y0 = top + i*rowH;
+    if(i) svg += `<line x1="0" x2="${W}" y1="${y0}" y2="${y0}" stroke="var(--line)" stroke-dasharray="2 3"/>`;
+    svg += `<text class="lbl" x="${LBL-10}" y="${y0+rowH/2+4}" text-anchor="end">${esc(s.d.name.length>22?s.d.name.slice(0,21)+'…':s.d.name)}</text>`;
+    s.lv.forEach((l,j)=>{
+      const y = y0 + pad + j*(bh+gap), cy = y + bh/2, w = Math.max(0, X(l.m)-X(0));
+      const tip = `${s.d.name} · ${levels[j]}\nMean ${M.fmt(l.m)}${l.v.length>1?' ± '+M.fmt(l.se)+' SEM':''}\n${l.v.length} bee${l.v.length===1?'':'s'}`;
+      svg += `<rect x="${X(0)}" y="${y}" width="${w}" height="${bh}" rx="2" fill="var(--s${j+1})"/>`;
+      if(l.v.length>1) svg += `<line x1="${X(Math.max(0,l.m-l.se))}" x2="${X(l.m+l.se)}" y1="${cy}" y2="${cy}" stroke="var(--ink)" stroke-width="1.5" opacity=".7"/>`;
+      l.v.forEach(v=>{ svg += `<circle cx="${X(Math.min(v,xm))}" cy="${cy}" r="2.6" fill="var(--ink)" fill-opacity=".6" stroke="var(--panel)" stroke-width="1"/>`; });
+      svg += `<rect x="${LBL}" y="${y-1}" width="${W-LBL-R}" height="${bh+2}" fill="transparent" data-tip="${esc(tip)}"/>`;
+    });
+  });
+  $('an-chart').innerHTML = svg + '</svg>';
+  // table
+  $('an-table').innerHTML = `<thead><tr><th>Behavior</th>${levels.map((l,i)=>`<th class="num"><i class="dot" style="background:var(--s${i+1})"></i>${esc(l)}</th>`).join('')}<th class="num">Test</th></tr></thead><tbody>`
+    + stats.map(s=>`<tr><td>${esc(s.d.name)}</td>${s.lv.map(l=>`<td class="num mono">${l.v.length?M.fmt(l.m)+(l.v.length>1?' ± '+M.fmt(l.se):''):'—'}</td>`).join('')}<td class="num">${levels.length>1?fmtP(s.test):'<span class="help">one group</span>'}</td></tr>`).join('') + '</tbody>';
+  // PER by condition
+  const perRows = byLv.map(g=>{ const r = g.map(b=>trials(b)[0]); const y = r.filter(t=>t.per).length; const lat = r.filter(t=>t.lat!=null).map(t=>t.lat); return {y, n:g.length-y, lat}; });
+  const pt = perTest(perRows.map(r=>[r.y,r.n]));
+  $('an-per').innerHTML = `<thead><tr><th>${esc($('an-by').selectedOptions[0].text.replace(/ \(.*/,''))}</th><th class="num">Bees</th><th class="num">PER 1</th><th class="num">Responding</th><th class="num">Mean latency</th></tr></thead><tbody>`
+    + perRows.map((r,i)=>`<tr><td><i class="dot" style="background:var(--s${i+1})"></i>${esc(levels[i])}</td><td class="num mono">${r.y+r.n}</td><td class="num mono">${r.y}</td><td class="num mono">${Math.round(100*r.y/(r.y+r.n))}%</td><td class="num mono">${r.lat.length?mean(r.lat).toFixed(2)+' s':'—'}</td></tr>`).join('')
+    + (levels.length>1 ? `<tr><td colspan="4" class="help">Difference in responding</td><td class="num">${fmtP(pt)}</td></tr>` : '') + '</tbody>';
+  // transitions
+  const lvSel = $('an-level'); lvSel.innerHTML = '<option value="">All labeled bees</option>' + levels.map(l=>`<option>${esc(l)}</option>`).join('');
+  lvSel.value = levels.includes(S.an.level) ? S.an.level : '';
+  const tb = lvSel.value ? bees.filter(b=>condOf(b,$('an-by').value)===lvSel.value) : bees;
+  const {counts, used} = transitions(tb);
+  if(used.length<2){ $('an-matrix').innerHTML = '<div class="empty">Not enough bouts in a row to count transitions yet.</div>'; $('an-top').textContent=''; return; }
+  const rowTot = id => used.reduce((a,t)=>a+(counts[id+'>'+t]||0),0);
+  let m = `<table class="matrix"><thead><tr><th class="rh">from ↓ · to →</th>${used.map(t=>`<th title="${esc(stateName(t))}" data-tip="${esc(stateName(t))}"><kbd>${esc(stateKey(t))}</kbd></th>`).join('')}<th>n</th></tr></thead><tbody>`;
+  used.forEach(a=>{ const tot = rowTot(a);
+    m += `<tr><th class="rh">${esc(stateName(a))} <kbd>${esc(stateKey(a))}</kbd></th>` + used.map(b=>{ const c = counts[a+'>'+b]||0, p = tot ? c/tot : 0;
+      return `<td class="c" style="background:color-mix(in oklab, var(--s1) ${Math.round(p*100)}%, var(--soft));color:${p>0.55?'var(--panel)':'var(--ink)'}" data-tip="${esc(stateName(a))} → ${esc(stateName(b))}\n${c} of ${tot} transitions (${Math.round(p*100)}%)">${c?Math.round(p*100):''}</td>`; }).join('') + `<td class="n">${tot}</td></tr>`; });
+  $('an-matrix').innerHTML = m + '</tbody></table><p class="help">Cells show % of the row. Columns use each behavior’s key.</p>';
+  const top3 = Object.entries(counts).sort((x,y)=>y[1]-x[1]).slice(0,3).map(([k,c])=>{ const [a,b]=k.split('>'); return `${esc(stateName(a))} → ${esc(stateName(b))} (${Math.round(100*c/rowTot(a))}%, ${c}×)`; });
+  $('an-top').innerHTML = 'Most common: ' + top3.join(' · ');
+}
+$('an-by').onchange = e=>{ S.an.by = e.target.value; S.an.level=''; changed(); };
+$('an-measure').onchange = e=>{ S.an.measure = e.target.value; changed(); };
+$('an-level').onchange = e=>{ S.an.level = e.target.value; changed(); };
+$('an-idle').onchange = e=>{ S.an.idle = e.target.checked; changed(); };
+$('an-gap').onchange = e=>{ S.an.gap = Math.max(0, +e.target.value||0); changed(); };
+$('an-rep').onchange = e=>{ S.an.rep = e.target.checked; changed(); };
+let anT; window.addEventListener('resize', ()=>{ clearTimeout(anT); anT = setTimeout(renderAnalysis, 150); });
+const tip = $('tip');
+document.addEventListener('mouseover', e=>{ const t = e.target.closest && e.target.closest('[data-tip]'); if(!t){ tip.classList.remove('show'); return; } tip.textContent = t.dataset.tip; tip.classList.add('show'); });
+document.addEventListener('mousemove', e=>{ if(!tip.classList.contains('show')) return; const w = tip.offsetWidth, h = tip.offsetHeight; tip.style.left = Math.min(innerWidth-w-8, e.clientX+14)+'px'; tip.style.top = Math.max(8, e.clientY-h-10)+'px'; });
+function budgetCSV(){
+  const head = ['bee_id','holder','group',...S.conds.map(condCol),'recording_s','recording_estimated','behavior','bouts','total_s','proportion','mean_bout_s'];
+  const rows = [head];
+  S.bees.filter(b=>b.events.length).forEach(b=>{ const bb = beeBudget(b);
+    S.behaviors.filter(d=>d.role==='behavior').forEach(d=>{ const x = bb.beh[d.id];
+      rows.push([b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),bb.L.toFixed(3),bb.est?1:0,d.name,x.bouts,x.total.toFixed(3),x.prop==null?'':x.prop.toFixed(4),x.mean==null?'':x.mean.toFixed(3)]); }); });
+  return toCSV(rows);
+}
+function transCSV(){
+  const by = $('an-by').value, rows = [['compare_by','level','from','to','count','row_total','probability']];
+  const bees = S.bees.filter(b=>b.events.length);
+  [['', bees], ...levelsFor(by).map(l=>[l, bees.filter(b=>condOf(b,by)===l)])].forEach(([l, g])=>{ const {counts, used} = transitions(g);
+    used.forEach(a=>{ const tot = used.reduce((s,t)=>s+(counts[a+'>'+t]||0),0); used.forEach(b=>{ const c = counts[a+'>'+b]||0; if(tot) rows.push([by==='none'?'':by, l||'all', stateName(a), stateName(b), c, tot, (c/tot).toFixed(4)]); }); }); });
+  return toCSV(rows);
+}
+$('xBudget').onclick = ()=>offerFile('per_time_budget_'+stamp()+'.csv', budgetCSV(), 'text/csv');
+$('xTrans').onclick = ()=>offerFile('per_transitions_'+stamp()+'.csv', transCSV(), 'text/csv');
 
 /* ---------- timeline canvas ---------- */
 const cv = $('tl'); const ctx = cv.getContext('2d');
@@ -630,22 +942,37 @@ new MutationObserver(drawTL).observe(document.documentElement,{attributes:true,a
 let lastSum = 0;
 function frame(ts){
   const t = now(); const s = fmt(t);
-  $('clock').textContent = s; $('liveClock').textContent = s;
+  $('clock').textContent = s;
   if(isPlaying() || dragging){ drawTL(); tickKeys(); }
   if(isPlaying() && ts-lastSum>1000){ lastSum=ts; const b=bee(); if(b && b.events.some(e=>e.t1==null)) renderSummary(); }
   requestAnimationFrame(frame);
 }
 
 /* ---------- video ---------- */
-function openVideo(file){
-  if(!file || !file.type.startsWith('video')){ toast('That file is not a video.'); return; }
+function srcMsg(t){ $('srcMsg').textContent = t||''; $('srcMsg').hidden = !t; }
+function loadSrc(src, name, failText){
   if(live.running) togglePlay();
-  vid.src = URL.createObjectURL(file); videoName = file.name; hasVideo = true;
+  srcMsg(''); vid.src = src; videoName = name; hasVideo = true;
   vid.playbackRate = +$('rate').value;
-  vid.onloadedmetadata = ()=>{ drawTL(); toast('Loaded '+file.name); };
-  vid.onerror = ()=>{ toast('This browser cannot play '+file.name+'. Try an MP4 (H.264) file.'); closeVideo(); };
+  vid.onloadedmetadata = ()=>{ const b = bee(); if(b && !b.recLen && isFinite(vid.duration) && b.events.length){ b.recLen = +vid.duration.toFixed(3); changed(); } drawTL(); toast('Loaded '+name); };
+  vid.onerror = ()=>{ closeVideo(); srcMsg(failText); };
   renderTransport();
 }
+function openVideo(file){
+  if(!file || !file.type.startsWith('video')){ toast('That file is not a video.'); return; }
+  loadSrc(URL.createObjectURL(file), file.name, 'This browser cannot play '+file.name+'. Try an MP4 (H.264) file.');
+}
+function openVideoUrl(raw){
+  let u; try{ u = new URL(String(raw).trim()); }catch(e){ srcMsg('That is not a complete link. It should start with https://'); return; }
+  if(!/^https?:$/.test(u.protocol)){ srcMsg('Only http and https links can be loaded.'); return; }
+  if(/(^|\.)(youtube\.com|youtu\.be|vimeo\.com)$/i.test(u.hostname)){ srcMsg('YouTube and Vimeo links open a web page, not a video file, so they cannot be loaded. Use a direct link to an .mp4 or .webm file.'); return; }
+  const name = decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || u.hostname);
+  S.lastUrl = u.href; save();
+  loadSrc(u.href, name, /drive\.google\.com|dropbox\.com|onedrive|sharepoint/i.test(u.hostname)
+    ? 'Could not play that link. Sharing links from Google Drive, Dropbox or OneDrive usually open a preview page, not the video file. Download the video and open it as a file instead.'
+    : 'Could not play that link. It has to point straight at a video file the browser can play (usually .mp4), and the site has to allow it.');
+}
+$('urlForm').onsubmit = e=>{ e.preventDefault(); if($('vidUrl').value.trim()) openVideoUrl($('vidUrl').value); };
 function closeVideo(){ vid.pause(); vid.removeAttribute('src'); vid.load(); hasVideo=false; videoName=''; syncLiveFromBee(); renderAll(); }
 vid.addEventListener('play', renderTransport); vid.addEventListener('pause', ()=>{ renderTransport(); drawTL(); renderKeys(); renderSummary(); });
 vid.addEventListener('seeked', ()=>{ drawTL(); renderKeys(); });
@@ -653,9 +980,11 @@ $('pickVid').onclick = ()=>$('vidFile').click();
 $('vidFile').onchange = e=>{ openVideo(e.target.files[0]); e.target.value=''; };
 $('bCloseVid').onclick = closeVideo;
 const stage = $('stage');
-stage.addEventListener('dragover', e=>{ e.preventDefault(); $('drop').classList.add('over'); });
-stage.addEventListener('dragleave', ()=>$('drop').classList.remove('over'));
-stage.addEventListener('drop', e=>{ e.preventDefault(); $('drop').classList.remove('over'); openVideo(e.dataTransfer.files[0]); });
+stage.addEventListener('dragover', e=>{ e.preventDefault(); stage.classList.add('over'); });
+stage.addEventListener('dragleave', ()=>stage.classList.remove('over'));
+stage.addEventListener('drop', e=>{ e.preventDefault(); stage.classList.remove('over');
+  const f = e.dataTransfer.files[0], link = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+  if(f) openVideo(f); else if(link){ $('vidUrl').value = link.trim(); openVideoUrl(link); } });
 
 /* ---------- transport ---------- */
 const fpsStep = () => 1/(+S.settings.fps||30);
@@ -716,19 +1045,20 @@ $('bClearBee').onclick = ()=>{ const b=bee(); if(!b||!b.events.length) return; c
 const csvCell = v => { if(v==null) return ''; const s=String(v); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
 const toCSV = rows => rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
 function eventsCSV(){
-  const rows=[['experiment','experimenter','date','bee_id','holder','group','video','behavior','role','type','start_s','stop_s','duration_s']];
-  S.bees.forEach(b=>[...b.events].sort((a,c)=>a.t0-c.t0).forEach(e=>{ const d=beh(e.bid)||{name:e.bid}; rows.push([S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,b.videoName||'',d.name,d.role,d.type,f2(e.t0),f2(e.t1),e.t1==null?'':f2(e.t1-e.t0)]); }));
+  const rows=[['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'video','behavior','role','type','start_s','stop_s','duration_s']];
+  S.bees.forEach(b=>[...b.events].sort((a,c)=>a.t0-c.t0).forEach(e=>{ const d=beh(e.bid)||{name:e.bid}; rows.push([S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.videoName||'',d.name,d.role,d.type,f2(e.t0),f2(e.t1),e.t1==null?'':f2(e.t1-e.t0)]); }));
   return toCSV(rows);
 }
 function summaryCSV(){
   const behs = S.behaviors.filter(d=>d.role==='behavior');
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-  const head=['experiment','experimenter','date','bee_id','holder','group','trial','trial_onset_s','per','latency_s','pre_extended','response_window_s','summary_window_s'];
+  const head=['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'recording_s','trial','trial_onset_s','per','latency_s','pre_extended','response_window_s','summary_window_s'];
   behs.forEach(d=>head.push(slug(d.name)+'_count', slug(d.name)+'_dur_s'));
   const rows=[head];
-  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,t.onset==null?'all':t.i,f2(t.onset),t.per,t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
+  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.recLen||'',t.onset==null?'all':t.i,f2(t.onset),t.per,t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
   return toCSV(rows);
 }
+const condCol = c => c.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') || 'condition';
 const downloadsP = (window.claude && claude.use) ? claude.use('downloads').catch(()=>null) : Promise.resolve(null);
 const inViewer = !!(window.claude && claude.use);
 async function offerFile(filename, text, mime){
@@ -755,7 +1085,7 @@ $('cpSummary').onclick = ()=>{
 $('iJson').onclick = ()=>$('jsonFile').click();
 $('jsonFile').onchange = e=>{
   const f=e.target.files[0]; if(!f) return; const r=new FileReader();
-  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.bees||!s.behaviors) throw 0; S=s; S.current=S.current||S.bees[0]?.id; syncLiveFromBee(); ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||''); changed(); toast('Opened '+f.name); }catch(err){ toast('That file is not a PER Scorer project.'); } };
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.bees||!s.behaviors) throw 0; S=migrate(s); S.current=S.current||S.bees[0]?.id; syncLiveFromBee(); ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||''); changed(); toast('Opened '+f.name); }catch(err){ toast('That file is not a PER Scorer project.'); } };
   r.readAsText(f); e.target.value='';
 };
 
@@ -765,5 +1095,6 @@ function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show
 syncLiveFromBee();
 renderAll();
 requestAnimationFrame(frame);
+try{ const q = new URLSearchParams(location.search).get('video'); if(q){ $('vidUrl').value = q; openVideoUrl(q); } else if(S.lastUrl) $('vidUrl').value = S.lastUrl; }catch(e){}
 })();
 </script>
