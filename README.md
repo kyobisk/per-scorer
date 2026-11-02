@@ -19,7 +19,7 @@ Videos can be opened from a file or from a direct link to a video file. A link c
 
 ### Ethogram
 
-By default students can change each behavior's key and color, but not its name, so everyone's exports have the same columns. **Edit keys & behaviors → Allow renaming, adding and removing behaviors** unlocks full editing. **Export ethogram** saves the behaviors, keys and PER rules as a small JSON file that students load with **Import ethogram…**; **Reset to defaults** restores the standard keys.
+PER Scorer starts with no behaviors: students build their own ethogram. The form under the behavior keys adds a behavior with a name, a key, start/stop or point, and an optional **Counts as PER** tick; PER shows as "not set" until one behavior counts. **Edit keys & behaviors** opens the editor for renaming, recoloring, changing keys or removing unused behaviors. **Export ethogram** saves the behaviors, keys and PER rule as a small JSON file that students load with **Import ethogram…**. Ticking **Lock behavior names** (saved in the exported file) limits students to changing keys and colors, so pooled data keeps the same columns. **Start new project** (under Data) clears everything.
 
 ### Analysis
 

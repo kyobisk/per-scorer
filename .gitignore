@@ -1,3 +1,5 @@
 .build/
 tutorial/img/full.png
 .DS_Store
+site/
+tools/patch_player.py
