@@ -382,6 +382,12 @@ function migrate(s){
   s.settings = Object.assign({cs:'', resp:[], rw:3, aw:10, fps:30, ethoFull:true}, s.settings);
   s.an = Object.assign({by:'group', measure:'prop', level:'', idle:false, gap:1, rep:false}, s.an);
   s.bees.forEach(b=>{ b.cond = b.cond || {}; });
+  // Older versions preloaded example bees and eight preset behaviors; drop them unless real labels use them.
+  s.bees = s.bees.filter(b=>!b.example && !/^Example bee( 2)?$/.test(b.label));
+  const PRESET = ['pe','pp','an','md','gr','st','sx','df'];
+  if(!s.bees.some(b=>b.events.length) && s.behaviors.length && s.behaviors.every(d=>PRESET.includes(d.id))){
+    s.behaviors = []; s.settings.resp = []; s.settings.cs = '';
+  }
   if(!s.current || !s.bees.find(b=>b.id===s.current)) s.current = s.bees[0]?.id || null;
   return s;
 }
