@@ -58,8 +58,20 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-
 .col{display:flex;flex-direction:column;gap:16px;min-width:0}
 
 /* video stage */
-.stage{position:relative;background:#0b0e11;border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
-.stage video{width:100%;height:100%;object-fit:contain;display:block}
+.stage{position:relative;background:#0b0e11;border-radius:6px;overflow:hidden;aspect-ratio:16/9;width:100%;max-width:100%;margin-inline:auto;display:grid;place-items:center}
+.stage video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;display:block}
+.stage.cropped video{object-fit:fill}
+.cropper{position:absolute;inset:0;cursor:crosshair;touch-action:none;z-index:2}
+.cropper .sel{position:absolute;border:2px solid #f0a92e;box-shadow:0 0 0 9999px rgba(0,0,0,.55);pointer-events:none}
+.cropper .cbar{position:absolute;left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:5px 6px 5px 10px;border-radius:6px;width:max-content;max-width:calc(100% - 20px);cursor:default}
+.cropper .cbar button{padding:3px 9px}
+.vtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.vtools .lab{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.vtools .tv{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px;border:0;background:var(--soft);padding:3px 7px}
+.savestate{font-size:12px;color:var(--muted);white-space:nowrap}
+.savestate.bad{color:var(--bad);font-weight:600;white-space:normal}
+.banner{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:8px 12px;font-size:13px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+tr.out td{opacity:.5}
 .stage.over{outline:2px dashed #f0a92e;outline-offset:-10px}
 .stage .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);color:#8d9aa5;font-size:12px;text-align:center;width:max-content;max-width:calc(100% - 24px)}
 .source{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -175,8 +187,10 @@ table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
       <div class="f"><label for="m-exp">Experimenter</label><input id="m-exp" placeholder="Initials"></div>
       <div class="f"><label for="m-date">Date</label><input id="m-date" type="date"></div>
       <div class="f"><label for="m-exp-id">Experiment</label><input id="m-exp-id" placeholder="e.g. Sucrose responsiveness, day 1"></div>
+      <span class="savestate" id="saveState" aria-live="polite"></span>
     </div>
   </header>
+  <div class="banner" id="tabBanner" hidden><span>PER Scorer is also open in another tab or window. Close one of them, or each will overwrite the other's saved work.</span><button class="ghost" id="tabBannerX" aria-label="Dismiss">✕</button></div>
 
   <div class="grid">
     <div class="col">
@@ -192,6 +206,8 @@ table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
           <div class="hint" id="stageHint">No video loaded. Open a file or link above, or drop a video here. Press <span class="mono">Space</span> to score live with the stopwatch.</div>
           <div class="badge" id="beeBadge"></div>
           <div class="active" id="activeTags"></div>
+          <div class="cropper" id="cropper" hidden><div class="sel" id="cropSel" hidden></div>
+            <div class="cbar"><span>Drag a box around the bee.</span><button class="primary" id="cropOk">Apply</button><button id="cropCancel">Cancel</button></div></div>
         </div>
         <input type="file" id="vidFile" accept="video/*" hidden>
         <div class="transport">
@@ -210,6 +226,20 @@ table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
           <span class="clock" id="clock">00:00.00</span>
           <span style="flex:1"></span>
           <button class="ghost" id="bResetClock" title="Reset the stopwatch to zero">Reset clock</button>
+        </div>
+        <div class="vtools" id="vtools">
+          <span class="lab">Trim</span>
+          <button id="bTrimIn" title="Make the current moment 0:00 for this bee">Start here</button>
+          <button class="tv" id="trimInV" title="Go to the trim start">start of video</button>
+          <span class="help">to</span>
+          <button id="bTrimOut" title="End this bee's recording at the current moment">End here</button>
+          <button class="tv" id="trimOutV" title="Go to the trim end">end of video</button>
+          <span class="help" id="trimLen"></span>
+          <button class="ghost" id="bTrimClear" hidden>Clear trim</button>
+          <span class="sep"></span>
+          <span class="lab">View</span>
+          <button id="bCrop" title="Zoom in on part of the video frame">Crop…</button>
+          <button class="ghost" id="bCropReset" hidden>Show full frame</button>
         </div>
         <div class="row spread">
           <h2>Ethogram timeline · <span id="tlBee"></span></h2>
@@ -298,7 +328,7 @@ table.matrix td.n{color:var(--muted);font-family:var(--mono);padding-left:8px}
           <span id="newProjWrap"><button class="ghost" id="newProj">Start new project</button></span>
           <input type="file" id="jsonFile" accept=".json,application/json" hidden>
         </div>
-        <p class="help">Work is kept in this browser automatically, but browser storage can be cleared. Save the project file at the end of each session.</p>
+        <p class="help">Your work, including the video you opened, is saved in this browser as you go, so you can close the page and pick up where you left off. Browser storage can be cleared, and it does not follow you to another computer, so also save the project file at the end of each session.</p>
       </section>
 
       <section class="panel" aria-label="Shortcuts">
@@ -394,15 +424,45 @@ function migrate(s){
 const undo = [];
 
 function load(){ try{ const s = JSON.parse(localStorage.getItem(STORE)); return s && s.bees ? s : null; }catch(e){ return null; } }
-let saveT;
-function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(STORE, JSON.stringify(S)); }catch(e){} }, 300); }
+let saveT, lastWrite = '';
+function save(){ clearTimeout(saveT); saveT = setTimeout(flush, 300); }
+function flush(){
+  clearTimeout(saveT);
+  if(!hasVideo && live.running){ const b=bee(); if(b) b.clock = now(); }
+  const el = $('saveState');
+  try{ lastWrite = JSON.stringify(S); localStorage.setItem(STORE, lastWrite);
+    el.className = 'savestate'; el.textContent = '✓ Saved in this browser ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+  catch(e){ el.className = 'savestate bad'; el.textContent = 'Not saved: this browser is blocking storage. Use Save project (.json) before you close the page.'; }
+}
+addEventListener('pagehide', flush);
+addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') flush(); });
+// Another tab writing the same project would silently overwrite this one.
+addEventListener('storage', e=>{ if(e.key===STORE && e.newValue!==lastWrite) $('tabBanner').hidden = false; });
+try{ navigator.storage?.persist?.(); }catch(e){}
+
+// Videos opened from a file are kept in IndexedDB so they reopen on their own next time.
+const VDB = (()=>{
+  let p; const db = () => p || (p = new Promise((res, rej)=>{ const r = indexedDB.open('per-scorer-videos', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('v'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const run = (mode, fn) => db().then(d=>new Promise((res, rej)=>{ const t = d.transaction('v', mode), q = fn(t.objectStore('v'));
+    t.oncomplete = () => res(q && q.result); t.onerror = t.onabort = () => rej(t.error); }));
+  return {put:(k,v)=>run('readwrite', s=>s.put(v,k)), get:k=>run('readonly', s=>s.get(k)), del:k=>run('readwrite', s=>s.delete(k)), keys:()=>run('readonly', s=>s.getAllKeys())};
+})();
+function gcVideos(){
+  const keep = new Set([videoKey, ...S.bees.map(b=>b.video?.key)]);
+  VDB.keys().then(ks=>ks.forEach(k=>{ if(!keep.has(k)) VDB.del(k); })).catch(()=>{});
+}
 
 const bee = () => S.bees.find(b=>b.id===S.current);
 const beh = id => S.behaviors.find(b=>b.id===id);
+// Trim: each bee's recording runs from tIn to tOut (video time). Events keep video time; 0:00 is shown at tIn.
+const tIn = b => b?.trim?.in || 0;
+const tOut = b => b?.trim?.out ?? null;
+const overlaps = (b, e) => (e.t1 ?? Infinity) >= tIn(b) && e.t0 <= (tOut(b) ?? Infinity);
 
 /* ---------- clock: video time when a video is open, else a per-bee stopwatch ---------- */
 const vid = $('vid');
-let hasVideo = false, videoName = '';
+let hasVideo = false, videoName = '', videoKey = '', objUrl = '';
 const live = {running:false, startedAt:0, base:0};
 function syncLiveFromBee(){ live.running=false; live.base = bee()?.clock || 0; }
 function now(){
@@ -421,7 +481,8 @@ function togglePlay(){
   renderTransport();
 }
 function isPlaying(){ return hasVideo ? !vid.paused : live.running; }
-const fmt = t => { if(t==null||isNaN(t)) return '—'; const m=Math.floor(t/60), s=t-m*60; return String(m).padStart(2,'0')+':'+s.toFixed(2).padStart(5,'0'); };
+const fmt = t => { if(t==null||isNaN(t)) return '—'; const neg = t < -0.005; t = Math.abs(t); const m=Math.floor(t/60), s=t-m*60; return (neg?'−':'')+String(m).padStart(2,'0')+':'+s.toFixed(2).padStart(5,'0'); };
+const rel = t => t - tIn(bee());
 const f2 = t => t==null||isNaN(t) ? '' : (+t).toFixed(2);
 
 /* ---------- scoring ---------- */
@@ -432,13 +493,14 @@ function toggleBehavior(bid){
   const t = +now().toFixed(3);
   snapshot();
   if(b.example){ b.example=false; }
-  if(d.type==='point'){ b.events.push({id:uid(),bid,t0:t,t1:t}); toast(d.name+' at '+fmt(t)); }
+  const outside = t < tIn(b) || (tOut(b)!=null && t > tOut(b)) ? ' (outside the trim, so it will not count)' : '';
+  if(d.type==='point'){ b.events.push({id:uid(),bid,t0:t,t1:t}); toast(d.name+' at '+fmt(rel(t))+outside); }
   else {
     const open = b.events.find(e=>e.bid===bid && e.t1==null);
     if(open){ open.t1 = Math.max(t, open.t0); toast(d.name+' stopped · '+(open.t1-open.t0).toFixed(2)+' s'); }
-    else { b.events.push({id:uid(),bid,t0:t,t1:null}); toast(d.name+' started'); }
+    else { b.events.push({id:uid(),bid,t0:t,t1:null}); toast(d.name+' started'+outside); }
   }
-  b.videoName = hasVideo ? videoName : (b.videoName||'');
+  if(hasVideo){ b.videoName = videoName; b.video = currentVideo(); }
   if(hasVideo && !b.recLen && isFinite(vid.duration)) b.recLen = +vid.duration.toFixed(3);
   changed();
 }
@@ -449,24 +511,25 @@ function doUndo(){
 }
 
 function trials(b){
-  const cs = !S.settings.cs ? [] : b.events.filter(e=>e.bid===S.settings.cs).sort((a,c)=>a.t0-c.t0);
+  const a = tIn(b), z = tOut(b) ?? Infinity, evs = b.events.filter(e=>overlaps(b,e));
+  const cs = !S.settings.cs ? [] : evs.filter(e=>e.bid===S.settings.cs && e.t0>=a).sort((x,c)=>x.t0-c.t0);
   const onsets = cs.length ? cs.map(e=>e.t0) : [null];
   const resp = new Set(S.settings.resp);
   const rw = +S.settings.rw || 0, aw = +S.settings.aw || 0;
-  const tEnd = Math.max(now(), ...b.events.map(e=>e.t1 ?? e.t0), 0);
+  const tEnd = Math.min(z, Math.max(now(), ...evs.map(e=>e.t1 ?? e.t0), 0));
   return onsets.map((on,i)=>{
-    const o = on ?? 0;
-    const winEnd = on==null ? Infinity : o + rw;
-    const rs = b.events.filter(e=>resp.has(e.bid)).sort((a,c)=>a.t0-c.t0);
+    const o = on ?? a;
+    const winEnd = on==null ? z : Math.min(z, o + rw);
+    const rs = evs.filter(e=>resp.has(e.bid)).sort((x,c)=>x.t0-c.t0);
     const first = rs.find(e=>e.t0>=o && e.t0<=winEnd);
     const pre = on!=null && rs.some(e=>e.t0<o && (e.t1==null || e.t1>o));
-    const aEnd = on==null ? Infinity : o + aw;
+    const aEnd = on==null ? z : Math.min(z, o + aw);
     const per = {};
     S.behaviors.forEach(d=>{
       let n=0, dur=0;
-      b.events.filter(e=>e.bid===d.id).forEach(e=>{
+      evs.filter(e=>e.bid===d.id).forEach(e=>{
         const t1 = e.t1 ?? tEnd;
-        if(e.t0>=o && e.t0<=aEnd) n++;
+        if(on==null || (e.t0>=o && e.t0<=aEnd)) n++;
         const ov = Math.min(t1,aEnd) - Math.max(e.t0,o);
         if(ov>0) dur+=ov;
       });
@@ -487,6 +550,17 @@ function renderTransport(){
   ['tlBee','logBee','sumBee'].forEach(id=>$(id).textContent = b ? b.label : '—');
   $('bCloseVid').hidden = !hasVideo; $('bResetClock').hidden = hasVideo;
   $('stageHint').hidden = hasVideo; vid.hidden = !hasVideo;
+  renderTools();
+}
+function renderTools(){
+  const b = bee(), a = tIn(b), z = tOut(b);
+  $('trimInV').textContent = a ? fmt(a) : 'start of video';
+  $('trimOutV').textContent = z!=null ? fmt(z) : 'end of video';
+  $('trimLen').textContent = b?.trim ? 'Length ' + fmt(recLenOf(b)) : '';
+  $('bTrimClear').hidden = !b?.trim;
+  $('bCrop').disabled = !hasVideo; $('bCrop').title = hasVideo ? 'Zoom in on part of the video frame' : 'Open a video first';
+  $('bCropReset').hidden = !b?.crop;
+  applyView();
 }
 
 function renderBees(){
@@ -517,7 +591,7 @@ function renderBees(){
     $('eb-h').onchange=e=>{b.holder=e.target.value; changed();};
     $('eb-g').onchange=e=>{b.group=e.target.value; changed();};
     $('delBee').onclick=()=>confirmInline($('delBeeWrap'),'Delete '+b.label+'?',()=>{
-      S.bees = S.bees.filter(x=>x!==b); S.current = S.bees[0]?.id||null; syncLiveFromBee(); changed();
+      S.bees = S.bees.filter(x=>x!==b); S.current = S.bees[0]?.id||null; syncLiveFromBee(); changed(); gcVideos(); resumeBee();
     });
   }
 }
@@ -544,8 +618,17 @@ function confirmInline(host, msg, fn){
 }
 function selectBee(id){
   if(!hasVideo && live.running){ const b=bee(); if(b) b.clock=now(); }
+  notePos();
   S.current=id; syncLiveFromBee(); changed();
+  resumeBee();
 }
+// Put the current bee's video back where the student left it.
+function resumeBee(){
+  const b = bee(); if(!b) return;
+  if(b.video && b.video.key!==videoKey){ restoreVideo(b); return; }
+  if(hasVideo && b.video) setTime(b.pos ?? tIn(b));
+}
+function notePos(){ const b = bee(); if(b && hasVideo && b.video?.key===videoKey){ b.pos = +vid.currentTime.toFixed(3); save(); } }
 
 function renderKeys(){
   const el = $('keys'); el.innerHTML='';
@@ -572,20 +655,22 @@ function renderLog(){
   const tb = $('log'); tb.innerHTML='';
   const b = bee();
   if(!b || !b.events.length){ tb.innerHTML='<tr><td colspan="5" class="empty">No events yet. Press a behavior key while the video plays or the stopwatch runs.</td></tr>'; return; }
-  [...b.events].sort((a,c)=>c.t0-a.t0).forEach(e=>{
+  const a = tIn(b);
+  [...b.events].sort((x,c)=>c.t0-x.t0).forEach(e=>{
     const d = beh(e.bid) || {name:'(deleted behavior)',color:'#888',type:'state'};
     const tr = document.createElement('tr'); if(e.t1==null) tr.className='open';
+    if(!overlaps(b,e)){ tr.className='out'; tr.title='Outside the trim, so it is not counted.'; }
     const dur = e.t1==null ? null : e.t1-e.t0;
     tr.innerHTML = `<td><span class="dot" style="background:${d.color}"></span><span class="n"></span></td>
-      <td class="num"><input type="number" step="0.01" min="0" class="t0" aria-label="Start time"></td>
-      <td class="num">${d.type==='point'?'<span class="help">point</span>':'<input type="number" step="0.01" min="0" class="t1" aria-label="Stop time">'}</td>
+      <td class="num"><input type="number" step="0.01" class="t0" aria-label="Start time"></td>
+      <td class="num">${d.type==='point'?'<span class="help">point</span>':'<input type="number" step="0.01" class="t1" aria-label="Stop time">'}</td>
       <td class="num mono">${dur==null? (d.type==='point'?'':'open') : dur.toFixed(2)}</td>
       <td><button class="ghost go" title="Seek here">↦</button>${e.t1==null&&d.type!=='point'?'<button class="stop">Stop now</button>':''}<button class="ghost del" title="Delete event">✕</button></td>`;
     tr.querySelector('.n').textContent = d.name;
-    const i0 = tr.querySelector('.t0'); i0.value = f2(e.t0);
-    i0.onchange = ()=>{ snapshot(); e.t0 = Math.max(0,+i0.value); if(d.type==='point') e.t1=e.t0; else if(e.t1!=null && e.t1<e.t0) e.t1=e.t0; changed(); };
+    const i0 = tr.querySelector('.t0'); i0.value = f2(e.t0 - a);
+    i0.onchange = ()=>{ snapshot(); e.t0 = Math.max(0, a + +i0.value); if(d.type==='point') e.t1=e.t0; else if(e.t1!=null && e.t1<e.t0) e.t1=e.t0; changed(); };
     const i1 = tr.querySelector('.t1');
-    if(i1){ i1.value = f2(e.t1); i1.placeholder='open'; i1.onchange = ()=>{ snapshot(); e.t1 = i1.value===''?null:Math.max(e.t0,+i1.value); changed(); }; }
+    if(i1){ i1.value = e.t1==null ? '' : f2(e.t1 - a); i1.placeholder='open'; i1.onchange = ()=>{ snapshot(); e.t1 = i1.value===''?null:Math.max(e.t0, a + +i1.value); changed(); }; }
     tr.querySelector('.go').onclick = ()=>{ setTime(e.t0); drawTL(); };
     const st = tr.querySelector('.stop'); if(st) st.onclick = ()=>{ snapshot(); e.t1=Math.max(e.t0, now()); changed(); };
     tr.querySelector('.del').onclick = ()=>{ snapshot(); b.events = b.events.filter(x=>x!==e); changed(); };
@@ -600,10 +685,10 @@ function renderSummary(){
   const behs = S.behaviors.filter(d=>d.role==='behavior');
   let h = hasCS ? '' : S.settings.cs
     ? `<p class="help">No ${esc(beh(S.settings.cs)?.name||'onset')} logged yet, so the whole recording is treated as one trial measured from 0 s.</p>`
-    : `<p class="help">The whole recording is one trial. Latency is measured from 0:00, the start of the video or stopwatch.</p>`;
+    : `<p class="help">The whole recording is one trial. Latency is measured from 0:00, the ${b.trim?.in ? 'trim start' : 'start of the video or stopwatch'}.</p>`;
   if(!S.settings.resp.length) h += `<p class="help">PER is not set yet: tick <b>Counts as a PER</b> for a behavior under Scoring rules.</p>`;
   h += '<div class="tbl-wrap"><table><thead><tr><th>Trial</th><th class="num">Onset</th><th>PER</th><th class="num">Latency</th></tr></thead><tbody>';
-  tr.forEach(t=>{ h += `<tr><td>${hasCS?t.i:'all'}</td><td class="num mono">${t.onset==null?'—':f2(t.onset)}</td><td>${t.per==null?'<span class="pill na">not set</span>':`<span class="pill ${t.per?'yes':'no'}">${t.per?'PER 1':'PER 0'}</span>`}${t.pre?' <span class="pill ex">pre-ext</span>':''}</td><td class="num mono">${t.lat==null?'—':t.lat.toFixed(2)+' s'}</td></tr>`; });
+  tr.forEach(t=>{ h += `<tr><td>${hasCS?t.i:'all'}</td><td class="num mono">${t.onset==null?'—':f2(t.onset - tIn(b))}</td><td>${t.per==null?'<span class="pill na">not set</span>':`<span class="pill ${t.per?'yes':'no'}">${t.per?'PER 1':'PER 0'}</span>`}${t.pre?' <span class="pill ex">pre-ext</span>':''}</td><td class="num mono">${t.lat==null?'—':t.lat.toFixed(2)+' s'}</td></tr>`; });
   h += '</tbody></table></div>';
   h += '<div class="tbl-wrap"><table><thead><tr><th>Behavior</th>'+tr.map(t=>`<th class="num">${hasCS?'T'+t.i:'All'} n</th><th class="num">${hasCS?'T'+t.i:'All'} s</th>`).join('')+'</tr></thead><tbody>';
   behs.forEach(d=>{ h += `<tr><td><span class="dot" style="background:${d.color}"></span>${esc(d.name)}</td>`+tr.map(t=>`<td class="num mono">${t.beh[d.id].n||''}</td><td class="num mono">${t.beh[d.id].dur?t.beh[d.id].dur.toFixed(2):''}</td>`).join('')+'</tr>'; });
@@ -745,15 +830,15 @@ const MEASURES = {
   mean:  {label:'Mean bout length (s)',    fmt:v=>v.toFixed(2)+' s', axis:v=>v+'', state:true},
 };
 const condOf = (b, by) => by==='none' ? 'All bees' : by==='group' ? (b.group||'(no group)') : (b.cond[by]||'(not set)');
-function recLenOf(b){ return b.recLen || Math.max(0, ...b.events.map(e=>e.t1 ?? e.t0)); }
+function recLenOf(b){ return Math.max(0, (tOut(b) ?? (b.recLen || Math.max(0, ...b.events.map(e=>e.t1 ?? e.t0)))) - tIn(b)); }
 function beeBudget(b){
-  const L = recLenOf(b), out = {};
+  const L = recLenOf(b), a = tIn(b), z = tOut(b) ?? Infinity, out = {};
   S.behaviors.filter(d=>d.role==='behavior').forEach(d=>{
-    const es = b.events.filter(e=>e.bid===d.id);
-    const total = es.reduce((a,e)=>a + Math.max(0, (e.t1 ?? (b.recLen || e.t0)) - e.t0), 0);
+    const es = b.events.filter(e=>e.bid===d.id && overlaps(b,e));
+    const total = es.reduce((s,e)=>s + Math.max(0, Math.min(z, e.t1 ?? (tOut(b) ?? (b.recLen || e.t0))) - Math.max(a, e.t0)), 0);
     out[d.id] = {bouts:es.length, total, prop: L>0 ? total/L : null, mean: es.length ? total/es.length : null};
   });
-  return {L, est:!b.recLen, beh:out};
+  return {L, est:!b.recLen && tOut(b)==null, beh:out};
 }
 const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
 const sd = a => a.length<2 ? 0 : Math.sqrt(a.reduce((x,y)=>x+(y-mean(a))**2,0)/(a.length-1));
@@ -794,7 +879,7 @@ function transitions(bees){
   const states = S.behaviors.filter(d=>d.role==='behavior').map(d=>d.id), counts = {};
   bees.forEach(b=>{
     const seq = []; let lastEnd = -Infinity;
-    [...b.events].filter(e=>states.includes(e.bid)).sort((x,y)=>x.t0-y.t0 || (x.t1??x.t0)-(y.t1??y.t0)).forEach(e=>{
+    [...b.events].filter(e=>states.includes(e.bid) && overlaps(b,e)).sort((x,y)=>x.t0-y.t0 || (x.t1??x.t0)-(y.t1??y.t0)).forEach(e=>{
       if(S.an.idle && seq.length && e.t0 - lastEnd > (+S.an.gap||0)) seq.push('idle');
       if(S.an.rep || seq[seq.length-1]!==e.bid) seq.push(e.bid);
       lastEnd = Math.max(lastEnd, e.t1 ?? e.t0);
@@ -930,7 +1015,8 @@ function drawTL(){
   // ticks
   const span = view.t1-view.t0; const steps=[0.5,1,2,5,10,15,30,60,120,300,600]; const step = steps.find(s=>span/s<=12)||1200;
   ctx.font = '11px '+css('--mono'); ctx.textBaseline='middle';
-  for(let s=Math.ceil(view.t0/step)*step; s<=view.t1; s+=step){ const x=X(s); ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(x+.5,TOP-4); ctx.lineTo(x+.5,H); ctx.stroke(); ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText(step<1?s.toFixed(1):fmtShort(s), x, 10); }
+  const base = tIn(b); // tick labels count from the trim start
+  for(let s=Math.ceil((view.t0-base)/step)*step; base+s<=view.t1; s+=step){ const x=X(base+s); if(x<LBL) continue; ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(x+.5,TOP-4); ctx.lineTo(x+.5,H); ctx.stroke(); ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText(step<1?s.toFixed(1):fmtShort(s), x, 10); }
   // response windows
   if(b){ const rw=+S.settings.rw||0; b.events.filter(e=>e.bid===S.settings.cs).forEach(e=>{ const x0=Math.max(LBL,X(e.t0)), x1=Math.min(W-8,X(e.t0+rw)); if(x1>x0){ ctx.fillStyle=C.acs; ctx.fillRect(x0,TOP-4,x1-x0,H-TOP+4); } }); }
   S.behaviors.forEach((d,i)=>{
@@ -953,9 +1039,17 @@ function drawTL(){
   });
   if(!rows){ ctx.fillStyle=C.muted; ctx.font='12px '+css('--sans'); ctx.textAlign='left'; ctx.fillText('Each behavior you add gets a row here.', 8, TOP+2); }
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(LBL-.5,TOP-4); ctx.lineTo(LBL-.5,H); ctx.stroke();
+  // grey out what the trim leaves out
+  if(b?.trim){ const xa = Math.max(LBL, X(tIn(b))), xz = tOut(b)==null ? W : Math.min(W, X(tOut(b)));
+    ctx.fillStyle = C.bg; ctx.globalAlpha = .7;
+    if(xa>LBL) ctx.fillRect(LBL, TOP-4, xa-LBL, H-TOP+4);
+    if(xz<W) ctx.fillRect(xz, TOP-4, W-xz, H-TOP+4);
+    ctx.globalAlpha = 1; ctx.strokeStyle = C.muted; ctx.setLineDash([4,3]);
+    [xa>LBL && xa, xz<W && xz].forEach(x=>{ if(x){ ctx.beginPath(); ctx.moveTo(x+.5,TOP-4); ctx.lineTo(x+.5,H); ctx.stroke(); } });
+    ctx.setLineDash([]); }
   const px = X(t); if(px>=LBL && px<=W){ ctx.strokeStyle=C.accent; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(px,TOP-6); ctx.lineTo(px,H); ctx.stroke(); ctx.lineWidth=1; ctx.fillStyle=C.accent; ctx.beginPath(); ctx.moveTo(px-5,TOP-10); ctx.lineTo(px+5,TOP-10); ctx.lineTo(px,TOP-4); ctx.fill(); }
 }
-const fmtShort = s => s<60 ? s+'s' : Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+const fmtShort = s => s<0 ? '−'+fmtShort(-s) : s<60 ? s+'s' : Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
 let dragging=false;
 function seekFromEvent(ev){ const r=cv.getBoundingClientRect(); const x=ev.clientX-r.left; if(x<LBL) return; const W=cv.clientWidth; const s = view.t0 + (x-LBL)/(W-LBL-8)*(view.t1-view.t0); setTime(s); drawTL(); }
 cv.addEventListener('pointerdown', e=>{ dragging=true; cv.setPointerCapture(e.pointerId); seekFromEvent(e); });
@@ -966,10 +1060,16 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawTL);
 new MutationObserver(drawTL).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
 /* ---------- loop ---------- */
-let lastSum = 0;
+let lastSum = 0, lastPos = 0, prevT = 0;
 function frame(ts){
-  const t = now(); const s = fmt(t);
+  const t = now(); const s = fmt(rel(t));
   $('clock').textContent = s;
+  if(hasVideo && !vid.paused){
+    const z = tOut(bee());
+    if(z!=null && prevT < z && t >= z){ vid.pause(); toast('End of the trimmed recording'); }
+    if(ts-lastPos>2000){ lastPos = ts; notePos(); }
+  }
+  prevT = t;
   if(isPlaying() || dragging){ drawTL(); tickKeys(); }
   if(isPlaying() && ts-lastSum>1000){ lastSum=ts; const b=bee(); if(b && b.events.some(e=>e.t1==null)) renderSummary(); }
   requestAnimationFrame(frame);
@@ -977,17 +1077,45 @@ function frame(ts){
 
 /* ---------- video ---------- */
 function srcMsg(t){ $('srcMsg').textContent = t||''; $('srcMsg').hidden = !t; }
-function loadSrc(src, name, failText){
+let videoUrl = '';
+const currentVideo = () => videoUrl ? {key:videoKey, name:videoName, url:videoUrl} : {key:videoKey, name:videoName};
+function loadSrc(src, name, failText, key, url){
   if(live.running) togglePlay();
-  srcMsg(''); vid.src = src; videoName = name; hasVideo = true;
+  notePos();
+  if(objUrl && objUrl!==src) URL.revokeObjectURL(objUrl);
+  objUrl = src.startsWith('blob:') ? src : '';
+  srcMsg(''); vid.src = src; videoName = name; videoKey = key; videoUrl = url || ''; hasVideo = true;
+  // A bee with no labels yet takes the video it is shown with; so does a bee whose video is reopened from a copy.
+  const b0 = bee(); if(b0 && (!b0.video || !b0.events.length || b0.video.name===name)){ b0.video = currentVideo(); b0.videoName = name; save(); }
   vid.playbackRate = +$('rate').value;
-  vid.onloadedmetadata = ()=>{ const b = bee(); if(b && !b.recLen && isFinite(vid.duration) && b.events.length){ b.recLen = +vid.duration.toFixed(3); changed(); } drawTL(); toast('Loaded '+name); };
+  vid.onloadedmetadata = ()=>{ const b = bee();
+    if(b && !b.recLen && isFinite(vid.duration) && b.events.length){ b.recLen = +vid.duration.toFixed(3); changed(); }
+    const start = b && b.video?.key===videoKey ? (b.pos ?? tIn(b)) : 0;
+    if(start>0) vid.currentTime = Math.min(start, vid.duration || start);
+    renderTools(); drawTL(); toast('Loaded '+name); };
   vid.onerror = ()=>{ closeVideo(); srcMsg(failText); };
   renderTransport();
 }
+const fileKey = f => 'file:'+f.name+'|'+f.size+'|'+f.lastModified;
 function openVideo(file){
   if(!file || !file.type.startsWith('video')){ toast('That file is not a video.'); return; }
-  loadSrc(URL.createObjectURL(file), file.name, 'This browser cannot play '+file.name+'. Try an MP4 (H.264) file.');
+  const key = fileKey(file);
+  loadSrc(URL.createObjectURL(file), file.name, 'This browser cannot play '+file.name+'. Try an MP4 (H.264) file.', key);
+  VDB.put(key, {file, name:file.name, saved:Date.now()}).then(gcVideos)
+    .catch(()=>toast('This video is too large to keep in the browser. Your labels are saved, but you will need to open the video again next time.', 6000));
+}
+function restoreVideo(b){
+  const v = b.video;
+  if(v.url){ openVideoUrl(v.url); return; }
+  VDB.get(v.key).then(rec=>{
+    if(bee()!==b) return;
+    if(rec && rec.file) loadSrc(URL.createObjectURL(rec.file), v.name, 'This browser cannot play '+v.name+'.', v.key);
+    else missingVideo(b);
+  }).catch(()=>missingVideo(b));
+}
+function missingVideo(b){
+  if(hasVideo) closeVideo();
+  srcMsg(`Open ${b.video.name} again to keep scoring ${b.label}. Your labels are saved; only the video has to be reopened.`);
 }
 function openVideoUrl(raw){
   let u; try{ u = new URL(String(raw).trim()); }catch(e){ srcMsg('That is not a complete link. It should start with https://'); return; }
@@ -995,14 +1123,68 @@ function openVideoUrl(raw){
   if(/(^|\.)(youtube\.com|youtu\.be|vimeo\.com)$/i.test(u.hostname)){ srcMsg('YouTube and Vimeo links open a web page, not a video file, so they cannot be loaded. Use a direct link to an .mp4 or .webm file.'); return; }
   const name = decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || u.hostname);
   S.lastUrl = u.href; save();
+  $('vidUrl').value = u.href;
   loadSrc(u.href, name, /drive\.google\.com|dropbox\.com|onedrive|sharepoint/i.test(u.hostname)
     ? 'Could not play that link. Sharing links from Google Drive, Dropbox or OneDrive usually open a preview page, not the video file. Download the video and open it as a file instead.'
-    : 'Could not play that link. It has to point straight at a video file the browser can play (usually .mp4), and the site has to allow it.');
+    : 'Could not play that link. It has to point straight at a video file the browser can play (usually .mp4), and the site has to allow it.', 'url:'+u.href, u.href);
 }
 $('urlForm').onsubmit = e=>{ e.preventDefault(); if($('vidUrl').value.trim()) openVideoUrl($('vidUrl').value); };
-function closeVideo(){ vid.pause(); vid.removeAttribute('src'); vid.load(); hasVideo=false; videoName=''; syncLiveFromBee(); renderAll(); }
-vid.addEventListener('play', renderTransport); vid.addEventListener('pause', ()=>{ renderTransport(); drawTL(); renderKeys(); renderSummary(); });
-vid.addEventListener('seeked', ()=>{ drawTL(); renderKeys(); });
+function closeVideo(){ notePos(); cropEnd(); vid.pause(); vid.removeAttribute('src'); vid.load(); if(objUrl){ URL.revokeObjectURL(objUrl); objUrl=''; } hasVideo=false; videoName=''; videoKey=''; videoUrl=''; syncLiveFromBee(); renderAll(); }
+vid.addEventListener('play', renderTransport); vid.addEventListener('pause', ()=>{ notePos(); renderTransport(); drawTL(); renderKeys(); renderSummary(); });
+vid.addEventListener('seeked', ()=>{ if(vid.paused) notePos(); drawTL(); renderKeys(); });
+
+/* ---------- trim ---------- */
+function needBee(){ const b = bee(); if(!b) toast('Add a bee first, in the Bees panel.'); return b; }
+function setTrim(which){
+  const b = needBee(); if(!b) return;
+  const t = +now().toFixed(3), tr = {in:tIn(b), out:tOut(b)};
+  if(which==='in'){ if(tr.out!=null && t>=tr.out){ toast('The start has to be before the end.'); return; } tr.in = t; }
+  else { if(t<=tr.in){ toast('The end has to be after the start.'); return; } tr.out = t; }
+  b.trim = tr; changed();
+  toast(which==='in' ? 'This moment is now 0:00 for '+b.label : b.label+'’s recording ends here');
+}
+$('bTrimIn').onclick = ()=>setTrim('in');
+$('bTrimOut').onclick = ()=>setTrim('out');
+$('trimInV').onclick = ()=>{ const b=bee(); if(b){ setTime(tIn(b)); drawTL(); } };
+$('trimOutV').onclick = ()=>{ const b=bee(); if(b && tOut(b)!=null){ setTime(tOut(b)); drawTL(); } };
+$('bTrimClear').onclick = ()=>{ const b=bee(); if(b){ delete b.trim; changed(); toast('Trim cleared'); } };
+
+/* ---------- crop: the stage takes the shape of the crop (or the frame) and the video is scaled inside it ---------- */
+let cropping = null; // {x,y,w,h} in fractions of the frame while the box is being drawn
+function applyView(){
+  const b = bee(), vw = vid.videoWidth, vh = vid.videoHeight;
+  const c = !cropping && hasVideo && vw ? b?.crop : null;
+  const ar = hasVideo && vw ? (c ? c.w*vw/(c.h*vh) : vw/vh) : 16/9;
+  stage.style.aspectRatio = String(ar);
+  stage.style.width = `min(100%, ${(60*ar).toFixed(2)}vh)`;
+  stage.classList.toggle('cropped', !!c);
+  Object.assign(vid.style, c ? {width:100/c.w+'%', height:100/c.h+'%', left:-c.x/c.w*100+'%', top:-c.y/c.h*100+'%'} : {width:'', height:'', left:'', top:''});
+}
+function cropStart(){
+  if(!hasVideo){ toast('Open a video first.'); return; }
+  const b = needBee(); if(!b) return;
+  vid.pause(); cropping = b.crop ? {...b.crop} : null;
+  $('cropper').hidden = false; applyView(); drawSel();
+}
+function cropEnd(){ cropping = null; $('cropper').hidden = true; applyView(); }
+function drawSel(){ const s = $('cropSel'); s.hidden = !cropping; if(cropping) Object.assign(s.style, {left:cropping.x*100+'%', top:cropping.y*100+'%', width:cropping.w*100+'%', height:cropping.h*100+'%'}); }
+function cropApply(){
+  const b = bee();
+  if(!cropping || cropping.w<0.03 || cropping.h<0.03){ toast('Drag a box around the bee first.'); return; }
+  const r = v => +v.toFixed(4);
+  b.crop = {x:r(cropping.x), y:r(cropping.y), w:r(cropping.w), h:r(cropping.h)};
+  cropEnd(); changed(); toast('Cropped. New bees start with the same crop.');
+}
+let cropFrom = null;
+const cropPt = e => { const r = stage.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX-r.left)/r.width)), Math.min(1, Math.max(0, (e.clientY-r.top)/r.height))]; };
+$('cropper').addEventListener('pointerdown', e=>{ if(e.target.closest('.cbar')) return; cropFrom = cropPt(e); $('cropper').setPointerCapture(e.pointerId); });
+$('cropper').addEventListener('pointermove', e=>{ if(!cropFrom) return; const [x,y] = cropPt(e), [x0,y0] = cropFrom;
+  cropping = {x:Math.min(x,x0), y:Math.min(y,y0), w:Math.abs(x-x0), h:Math.abs(y-y0)}; drawSel(); });
+$('cropper').addEventListener('pointerup', ()=>{ cropFrom = null; });
+$('cropOk').onclick = cropApply;
+$('cropCancel').onclick = cropEnd;
+$('bCrop').onclick = cropStart;
+$('bCropReset').onclick = ()=>{ const b=bee(); if(b){ delete b.crop; changed(); toast('Showing the full frame'); } };
 $('pickVid').onclick = ()=>$('vidFile').click();
 $('vidFile').onchange = e=>{ openVideo(e.target.files[0]); e.target.value=''; };
 $('bCloseVid').onclick = closeVideo;
@@ -1026,6 +1208,7 @@ $('bResetClock').onclick=()=>{ live.running=false; setTime(0); renderTransport()
 function stepRate(dir){ const o=[...$('rate').options]; const i=Math.min(o.length-1,Math.max(0,$('rate').selectedIndex+dir)); $('rate').selectedIndex=i; vid.playbackRate=+o[i].value; toast('Speed '+o[i].value+'×'); }
 
 document.addEventListener('keydown', e=>{
+  if(!$('cropper').hidden){ if(e.key==='Escape') cropEnd(); else if(e.key==='Enter'){ e.preventDefault(); cropApply(); } return; }
   const tag = (e.target.tagName||'').toLowerCase();
   if(['input','select','textarea'].includes(tag) || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key;
@@ -1049,7 +1232,9 @@ $('addBee').onsubmit = e=>{
   const label = $('nb-id').value.trim(); if(!label) return;
   if(S.bees.some(b=>b.label===label)){ toast('A bee called '+label+' already exists.'); return; }
   if(!hasVideo && live.running){ const b=bee(); if(b) b.clock=now(); }
+  notePos();
   const nb = {id:uid(), label, holder:$('nb-holder').value.trim(), group:$('nb-group').value.trim(), clock:0, events:[]};
+  const prev = bee(); if(prev?.crop) nb.crop = {...prev.crop}; // holders usually sit in the same spot
   S.bees.push(nb); S.current=nb.id; syncLiveFromBee();
   const h = $('nb-holder').value.trim(); const n = parseInt(h.replace(/\D+/g,''),10);
   $('nb-id').value=''; $('nb-holder').value = isNaN(n) ? '' : h.replace(/\d+$/, String(n+1));
@@ -1066,17 +1251,17 @@ $('bClearBee').onclick = ()=>{ const b=bee(); if(!b||!b.events.length) return; c
 const csvCell = v => { if(v==null) return ''; const s=String(v); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
 const toCSV = rows => rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n';
 function eventsCSV(){
-  const rows=[['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'video','behavior','role','type','start_s','stop_s','duration_s']];
-  S.bees.forEach(b=>[...b.events].sort((a,c)=>a.t0-c.t0).forEach(e=>{ const d=beh(e.bid)||{name:e.bid}; rows.push([S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.videoName||'',d.name,d.role,d.type,f2(e.t0),f2(e.t1),e.t1==null?'':f2(e.t1-e.t0)]); }));
+  const rows=[['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'video','behavior','role','type','start_s','stop_s','duration_s','in_trim','video_start_s']];
+  S.bees.forEach(b=>[...b.events].sort((a,c)=>a.t0-c.t0).forEach(e=>{ const d=beh(e.bid)||{name:e.bid}, a=tIn(b); rows.push([S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.videoName||'',d.name,d.role,d.type,f2(e.t0-a),e.t1==null?'':f2(e.t1-a),e.t1==null?'':f2(e.t1-e.t0),overlaps(b,e)?1:0,f2(e.t0)]); }));
   return toCSV(rows);
 }
 function summaryCSV(){
   const behs = S.behaviors.filter(d=>d.role==='behavior');
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-  const head=['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'recording_s','trial','trial_onset_s','per','latency_s','pre_extended','response_window_s','summary_window_s'];
+  const head=['experiment','experimenter','date','bee_id','holder','group',...S.conds.map(condCol),'recording_s','trim_start_s','trim_end_s','trial','trial_onset_s','per','latency_s','pre_extended','response_window_s','summary_window_s'];
   behs.forEach(d=>head.push(slug(d.name)+'_count', slug(d.name)+'_dur_s'));
   const rows=[head];
-  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),b.recLen||'',t.onset==null?'all':t.i,f2(t.onset),t.per??'',t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
+  S.bees.forEach(b=>trials(b).forEach(t=>{ const r=[S.session.experiment,S.session.experimenter,S.session.date,b.label,b.holder,b.group,...S.conds.map(c=>b.cond[c]||''),(b.recLen||b.trim)?recLenOf(b).toFixed(3):'',f2(tIn(b)),f2(tOut(b)),t.onset==null?'all':t.i,t.onset==null?'':f2(t.onset-tIn(b)),t.per??'',t.lat==null?'':t.lat.toFixed(3),t.pre?1:0,S.settings.rw,S.settings.aw]; behs.forEach(d=>r.push(t.beh[d.id].n, t.beh[d.id].dur.toFixed(3))); rows.push(r); }));
   return toCSV(rows);
 }
 const condCol = c => c.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') || 'condition';
@@ -1106,21 +1291,31 @@ $('cpSummary').onclick = ()=>{
 $('newProj').onclick = ()=>confirmInline($('newProjWrap'), 'Clear all bees, labels and behaviors? Save the project first if you need it.', ()=>{
   S = migrate(emptyState()); undo.length = 0; syncLiveFromBee(); addMsg(''); msg('');
   ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||'');
-  changed(); toast('New project started.');
+  changed(); gcVideos(); toast('New project started.');
 });
 $('iJson').onclick = ()=>$('jsonFile').click();
 $('jsonFile').onchange = e=>{
   const f=e.target.files[0]; if(!f) return; const r=new FileReader();
-  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.bees||!s.behaviors) throw 0; S=migrate(s); S.current=S.current||S.bees[0]?.id; syncLiveFromBee(); ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||''); changed(); toast('Opened '+f.name); }catch(err){ toast('That file is not a PER Scorer project.'); } };
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.bees||!s.behaviors) throw 0; S=migrate(s); S.current=S.current||S.bees[0]?.id; syncLiveFromBee(); ['m-exp','m-date','m-exp-id'].forEach((id,i)=>$(id).value=S.session[['experimenter','date','experiment'][i]]||''); changed(); toast('Opened '+f.name); resumeBee(); }catch(err){ toast('That file is not a PER Scorer project.'); } };
   r.readAsText(f); e.target.value='';
 };
 
 let toastT;
-function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),1600); }
+function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'), ms||1600); }
+$('tabBannerX').onclick = ()=>{ $('tabBanner').hidden = true; };
 
 syncLiveFromBee();
 renderAll();
+flush();
 requestAnimationFrame(frame);
-try{ const q = new URLSearchParams(location.search).get('video'); if(q){ $('vidUrl').value = q; openVideoUrl(q); } else if(S.lastUrl) $('vidUrl').value = S.lastUrl; }catch(e){}
+// Pick up where the student left off: same bee, same video, same moment.
+try{
+  const q = new URLSearchParams(location.search).get('video'), b = bee();
+  if(b?.video) resumeBee();
+  else if(q) openVideoUrl(q);
+  else if(S.lastUrl) $('vidUrl').value = S.lastUrl;
+  if(b && (b.events.length || S.bees.length>1)) setTimeout(()=>toast('Welcome back. Picking up where you left off with '+b.label+'.', 3500), 400);
+  gcVideos();
+}catch(e){}
 })();
 </script>
