@@ -15,7 +15,7 @@ Score proboscis extension responses (PER) for individual harnessed honey bees fr
 
 Each bee's whole recording is one trial. A bee scores PER 1 if at least one full proboscis extension is labeled; latency is the time from 0:00 (the start of the video) to the first one. Which behaviors count as a PER can be changed under **Scoring rules**. For several trials per video, add a behavior that marks each trial's start and choose it as the trial onset.
 
-Videos can be opened from a file or from a direct link to a video file. A link can also be passed in the address, so a class can open the same clip: `per-scorer.html?video=https://example.org/bee07.mp4`.
+Videos can be opened from a file or from a direct link to a video file. **Crop** zooms the video panel to a box drawn around the bee (saved per bee; new bees copy the previous crop). **Trim** sets a start and end per bee: the start becomes 0:00 for latency, the trimmed span is the recording length for proportions, and labels outside it are greyed out and excluded. The video file itself is never changed; exports give times from the trim start, plus `video_start_s`, `in_trim`, `trim_start_s` and `trim_end_s`. A link can also be passed in the address, so a class can open the same clip: `per-scorer.html?video=https://example.org/bee07.mp4`.
 
 ### Ethogram
 
@@ -30,7 +30,9 @@ The Analysis panel compares bees by Group or by any condition added under the be
 - **Transitions**: a row-normalized matrix of which behavior follows which, pooled over the selected bees, with optional idle gaps and self-transitions.
 - Exploratory tests (Mann–Whitney / Kruskal–Wallis, Fisher's exact / chi-square), not corrected for multiple comparisons. **Time budget CSV** and **Transitions CSV** export per-bee data for formal analysis.
 
-Labels are kept in the browser's local storage. Students should use **Save project (.json)** at the end of each session.
+### Saving
+
+Work is saved automatically as students go: labels and settings in local storage, and videos opened from a file in IndexedDB, so reopening the page returns to the same bee, video and moment. If a video cannot be kept (too large, or a different computer), the scorer asks for that file again by name. A banner warns when the page is open in two tabs. Browser storage is per computer and can be cleared, so students should still use **Save project (.json)** at the end of each session.
 
 ## Embedding in Canvas
 

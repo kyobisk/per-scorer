@@ -205,7 +205,9 @@ tr{break-inside:avoid}
   <p><b>From video (recommended):</b> click <i>Open video file…</i>, drag the file onto the black area, or paste a link to the video into the box next to the button and click <i>Load link</i>. A link has to point straight at a video file (usually ending in .mp4); YouTube links and Google Drive or Dropbox sharing links open a web page instead, so download those videos and open them as files. Set the <b>fps</b> box to the camera's frame rate (ask your instructor; 30 and 60 are common) so the frame-step buttons move exactly one frame.</p>
   <p><b>Live, at the bench:</b> skip the video. Press <kbd>Space</kbd> to start the stopwatch at the moment you begin, and score in real time. Live scoring is harder because you cannot rewind, so use it only if your instructor asks you to.</p>
   <p>The scorer reads each bee's <b>recording length</b> from the video. You can see and correct it in the <i>Length (s)</i> box under the bee list; it is what proportions of time are calculated from.</p>
-  <p>If several holders appear in the same video, score it once per bee: select a bee, score the whole video for that bee, then select the next bee and start again from 0:00.</p>
+  <p><b>Crop</b> if the bee is small in the frame: click <i>Crop…</i> under the video, drag a box around the bee and its holder, and click <i>Apply</i> (or press <kbd>Enter</kbd>). That area then fills the video panel. <i>Show full frame</i> undoes it. Each bee keeps its own crop, and a new bee starts with the crop of the bee before it, because holders usually sit in the same place.</p>
+  <p><b>Trim</b> if the recording has extra footage before or after the part you score: play to the first moment that counts and click <i>Start here</i>, then to the last moment and click <i>End here</i>. The start becomes 0:00 for that bee, so latency is measured from it, and the recording length is the trimmed length. Labels outside the trim are greyed out and not counted. Click a trim time to jump to it, or <i>Clear trim</i> to remove it. Neither crop nor trim changes the video file.</p>
+  <p>If several holders appear in the same video, score it once per bee: select a bee, crop to that bee's holder, score the video for that bee, then select the next bee and do the same.</p>
 
   <div class="note"><b>Changing a behavior later.</b> Click <i>Edit keys &amp; behaviors</i> to rename a behavior, change its key or color, or remove one you have not used yet. Renaming does not lose any labels. If your instructor has locked the names, you can still change keys and colors. <i>Export ethogram</i> saves your behaviors to a file you can reuse or share.</div>
 
@@ -274,7 +276,7 @@ tr{break-inside:avoid}
   <div class="side">
     <figure style="margin-top:0"><img src="img/data.png" alt="Data panel"></figure>
     <div>
-      <p>PER Scorer keeps your work in the browser between visits, but browser storage can be wiped by clearing history, using a private window, or switching computers. <b>Save a project file at the end of every session</b>, and keep it in your lab's shared folder.</p>
+      <p>PER Scorer saves your work as you go, in the browser you are using. Close the page whenever you like: when you open it again on the same computer, it returns to the same bee, reopens the video and goes to the moment where you stopped. The time of the last save is shown at the top of the page. Browser storage can still be wiped by clearing history or using a private window, and it does not move to another computer, so <b>save a project file at the end of every session</b> and keep it in your lab's shared folder.</p>
       <ul>
         <li><b>Save project (.json)</b>: everything, including bees, labels and settings. Use <i>Open project…</i> to pick up where you left off, on any computer.</li>
         <li><b>Events CSV</b>: one row per bout (bee, behavior, start, stop, duration, video file), for detailed analysis.</li>
@@ -337,6 +339,8 @@ tr{break-inside:avoid}
     <tr><td>I pressed a key and nothing happened</td><td>The cursor is probably in a text box. Click on an empty part of the page, then try again.</td></tr>
     <tr><td>I forgot to press stop</td><td>Find the open bout in the event log and type the correct stop time, or jump to the right moment and click <i>Stop now</i>.</td></tr>
     <tr><td>I labeled the wrong bee</td><td>Press <kbd>Z</kbd> repeatedly to undo, or delete the events in the log, then select the right bee and score again.</td></tr>
+    <tr><td>It asks me to open the video again</td><td>The video could not be kept in this browser (it may be very large, or you are on a different computer). Open the same file again; your labels are still there and it goes back to where you stopped.</td></tr>
+    <tr><td>A warning says the scorer is open in another tab</td><td>Close the extra tab or window. Two copies of the page save over each other.</td></tr>
     <tr><td>My bees disappeared</td><td>The browser storage was cleared. Use <i>Open project…</i> with your last saved .json file. This is why you save at the end of every session.</td></tr>
     <tr><td>The export button does nothing</td><td>Some computers block downloads from the page. Use <i>Copy summary</i> and paste into a spreadsheet, or ask for the <code>per-scorer.html</code> file and open it directly.</td></tr>
   </table>
