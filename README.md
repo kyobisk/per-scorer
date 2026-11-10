@@ -48,13 +48,13 @@ The scorer works best opened in its own tab.
 
 ## Re-recording the narration
 
-The walkthrough's voice-over is a set of clips in `narration/`, recorded with macOS text-to-speech. After editing the `CAPTIONS` in `per-walkthrough.html`, record them again:
+The walkthrough's voice-over is a set of clips in `narration/`, recorded with [Kokoro](https://github.com/thewh1teagle/kokoro-onnx), a free neural text-to-speech model that runs offline. After editing the `CAPTIONS` in `per-walkthrough.html`, record them again:
 
 ```bash
-python3 tools/narrate.py "Ava (Premium)"
+python3 tools/narrate.py kokoro:af_heart
 ```
 
-The script records one clip per caption, converts it to AAC, and writes each clip's length into the page so the player can hold the frame when a line needs more time than its slot. Premium voices are a free download in System Settings → Accessibility → Spoken Content → System voice → Manage Voices.
+The script records one clip per caption, converts it to AAC, and writes each clip's length into the page so the player can hold the frame when a line needs more time than its slot. An optional second argument sets the speed (e.g. `1.1`). Kokoro needs a one-time setup (a Python environment in `.venv` and about 120 MB of model files in `.models`, both ignored by Git); the steps are at the top of `tools/narrate.py`. A macOS voice also works, e.g. `python3 tools/narrate.py Samantha`.
 
 ## Rebuilding the tutorial PDF
 
